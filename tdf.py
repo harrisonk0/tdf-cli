@@ -421,7 +421,7 @@ class RssSource:
                     # Strip "Read the full article" leftover text from RSS descriptions
                     if clean_desc:
                         clean_desc = re.sub(
-                            r'^Read the full article at.*',
+                            r'Read the full article at.*',
                             '',
                             clean_desc
                         ).strip()
