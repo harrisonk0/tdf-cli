@@ -135,8 +135,13 @@ class AsoSource:
         return r["team_name"] if r else ""
 
     def find_latest_stage(self):
+        """Find the latest completed stage (one with result data)."""
         stages = self.load_stages()
-        return max((s["stage"] for s in stages), default=1)
+        for s in reversed(stages):
+            snum = s.get("stage")
+            if snum and self.get_finish_rankings(snum):
+                return snum
+        return 1
 
     def stage_info(self, stage_num):
         stages = self.load_stages()
@@ -148,7 +153,7 @@ class AsoSource:
     def stage_type(self, stage_num):
         info = self.stage_info(stage_num)
         t = info.get("type", "")
-        mapping = {"EQU": "TTT", "IND": "ITT", "PAS": "Mountain", "PLN": "Flat", "VAL": "Road"}
+        mapping = {"EQU": "TTT", "IND": "ITT", "HMG": "Mountain", "MOG": "Road", "PAS": "Mountain", "PLN": "Flat", "VAL": "Road"}
         return mapping.get(t, t if t else "Road")
 
     def is_timetrial(self, stage_num):
@@ -168,10 +173,16 @@ class AsoSource:
         return [e for e in data if isinstance(e, dict) and "rankings" in e]
 
     def get_finish_rankings(self, stage, classification=None):
-        """Get the finish-line rankings (highest length checkpoint)."""
+        """Get the finish-line rankings (highest length checkpoint).
+        For road stages, returns the 'itg' (individual time general) if available."""
         cps = self.get_rankings(stage, classification)
         if not cps:
             return None
+        # Prefer 'itg' type (full individual GC with all riders) over others
+        itg = [c for c in cps if c.get("type") == "itg"]
+        if itg:
+            return itg[0]
+        # Fallback: highest length
         finish = max(cps, key=lambda c: c.get("length", 0))
         return finish
 
@@ -300,13 +311,48 @@ class PcsSource:
                     riders.append({"firstname": firstname, "lastname": lastname, "gap": gap})
 
             if riders and team_name:
-                # Deduplicate - PCS sometimes has summary tables
                 existing = [t for t in teams if t["team"] == team_name]
                 if not existing or len(riders) > len(existing[0]["riders"]):
                     teams = [t for t in teams if t["team"] != team_name]
                     teams.append({"team": team_name, "riders": riders})
 
         return teams
+
+    def get_speed_segments(self, stage):
+        """Extract average speed per segment from PCS statistics page."""
+        session = self._get_session()
+        if session is None:
+            return None
+
+        url = f"https://www.procyclingstats.com/race/tour-de-france/{YEAR}/stage-{stage}/statistics/speed-per-segment"
+        try:
+            r = session.get(url, impersonate="chrome120", timeout=20)
+            if r.status_code != 200:
+                return None
+        except Exception:
+            return None
+
+        html = r.text
+        segments = []
+        for table_match in re.finditer(r"<table[^>]*>(.*?)</table>", html, re.DOTALL):
+            table_html = table_match.group(0)
+            rows = re.findall(r"<tr[^>]*>(.*?)</tr>", table_html, re.DOTALL)
+            for row in rows:
+                cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.DOTALL)
+                clean = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
+                # Look for segment data: "0-5.1", riders count, speed
+                if len(clean) >= 3 and "-" in clean[0] and clean[0][0].isdigit():
+                    try:
+                        speed = float(clean[-1])
+                        segments.append({
+                            "segment": clean[0],
+                            "riders": int(clean[1]) if clean[1].isdigit() else 0,
+                            "speed": speed,
+                        })
+                    except (ValueError, IndexError):
+                        pass
+
+        return segments if segments else None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -516,13 +562,10 @@ def cmd_gc(aso, stage, top_n=0):
     if stage < 1:
         stage = aso.find_latest_stage()
 
-    # Try rankingType for GC
-    cps = aso.get_rankings(stage, "rankingType")
-    if not cps:
+    finish = aso.get_finish_rankings(stage, "rankingType")
+    if not finish:
         print(f"GC data not yet available for stage {stage}")
         return
-
-    finish = max(cps, key=lambda c: c.get("length", 0))
     print(f"\nGeneral Classification after Stage {stage}")
     print(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
     print("-" * 95)
@@ -833,6 +876,24 @@ def cmd_profile(aso, stage):
         print("  No categorised climbs on this stage.")
 
 
+def cmd_speed(aso, stage):
+    """Average speed per segment (from PCS)."""
+    pcs = PcsSource()
+    segments = pcs.get_speed_segments(stage)
+    if not segments:
+        print(f"Speed data not available for stage {stage}. (PCS unreachable or stage not finished)")
+        return
+
+    info = aso.stage_info(stage)
+    dep = info.get("departureCity", {}).get("label", "?")
+    arr = info.get("arrivalCity", {}).get("label", "?")
+    print(f"Stage {stage}: {dep} > {arr} - Speed per Segment (PCS)\n")
+    print(f"{'Segment (km)':>15}  {'Riders':>7}  {'Avg Speed':>10}")
+    print("-" * 40)
+    for seg in segments:
+        print(f"{seg['segment']:>15}  {seg['riders']:>7}  {seg['speed']:>9.1f} kph")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
@@ -870,6 +931,7 @@ Info:
   tdf --riders             All 184 riders
   tdf --checkpoints 1      Checkpoint locations for stage 1
   tdf --profile 6          Stage 6 climb profile
+  tdf --speed 1            Average speed per segment (PCS)
         """,
     )
 
@@ -877,6 +939,7 @@ Info:
     parser.add_argument("--top", type=int, default=0, metavar="N", help="Show top N riders only")
     parser.add_argument("--splits", action="store_true", help="Show individual TTT/ITT splits (PCS)")
     parser.add_argument("--cp", action="store_true", help="Show checkpoint splits")
+    parser.add_argument("--speed", action="store_true", help="Average speed per segment (PCS)")
     parser.add_argument("--gc", action="store_true", help="General classification")
     parser.add_argument("--live", action="store_true", help="Live race state")
     parser.add_argument("--jerseys", action="store_true", help="Current jersey holders")
@@ -925,6 +988,8 @@ Info:
         cmd_checkpoints(aso, stage)
     elif args.profile:
         cmd_profile(aso, stage)
+    elif args.speed:
+        cmd_speed(aso, stage)
     elif args.gc:
         cmd_gc(aso, stage, top_n=args.top)
     else:
