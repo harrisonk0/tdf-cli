@@ -1,45 +1,74 @@
 # TDF CLI 🚴
 
-**Tour de France 2026 from your terminal** — live results, GPS tracking, race narrative, and individual rider splits, all in one CLI tool.
+**Tour de France 2026 from your terminal** — live results, GPS tracking, race narrative, and individual rider splits, in one CLI tool.
 
-```
+```bash
 tdf                          # Latest stage results
 tdf --live --watch           # Live race state (GPS, speeds, groups)
 tdf --bsky "Vauquelin"       # Bluesky narrative about a rider
 tdf 1 --splits               # Individual TTT splits for every rider
 ```
 
-## Features
+---
 
-| What | How |
-|------|-----|
-| **Stage results** | Full GC for all 184 riders with times + gaps |
-| **Live GPS tracking** | Real-time rider positions, speeds, groups, weather |
-| **Individual TTT splits** | Every rider's time within their team (PCS via `curl_cffi`) |
-| **Jersey holders** | 🟡 Yellow, 🟢 Green, 🔴 Polka, ⚪ White |
-| **Narrative feed** | Bluesky posts about the race — punctures, crashes, tactics in real time |
-| **News articles** | RSS from VeloNews + Escape Collective |
-| **Checkpoint splits** | Intermediate timings for any stage |
-| **Climb profiles** | Categorised climbs with altitude, length, gradient |
-| **Speed per segment** | Average speed broken down by section of each stage |
-| **Auto-refresh** | `--watch` flag for live dashboard |
+## ⚡ MCP Server — for AI agents
 
-## Quick Start
+This is the headliner. The tool ships with a **Model Context Protocol (MCP) server** — any MCP-compatible AI agent (Claude Desktop, Cline, Cursor, Hermes Agent, Continue, Windsurf) can query the full Tour de France data stack directly.
 
-```bash
-# Requires Python 3.9+ and pip
-pip install requests curl_cffi
+**13 tools available to AI agents:**
 
-# Download the script
-curl -o /usr/local/bin/tdf https://raw.githubusercontent.com/harrisonk0/tdf-cli/main/tdf.py
-chmod +x /usr/local/bin/tdf
+| Tool | What it gives |
+|------|---------------|
+| `get_stage_result` | Full stage results with times + gaps |
+| `get_gc` | General classification (all 184 riders) |
+| `get_jerseys` | Yellow / Green / Polka / White holders |
+| `get_live_state` | Real-time GPS, groups, speeds, weather |
+| `get_bluesky_feed` | Race narrative — punctures, crashes, tactics |
+| `get_news` | RSS articles from cycling journalism |
+| `get_stage_profile` | Climb categories, altitude, length |
+| `get_ttt_splits` | Individual per-rider TTT splits |
+| `get_speed_segments` | Average speed per stage segment |
+| `get_checkpoints` | Checkpoint locations with schedules |
+| `get_stage_checkpoint_splits` | Checkpoint timing gaps for top riders |
+| `get_teams` | All 23 teams with codes |
+| `search_riders` | Rider lookup by name |
 
-# Start using it
-tdf                     # Latest stage
-tdf --help              # Full command reference
+Plus a `tdf://stages` resource listing all 21 stages.
+
+### Claude Desktop / Cline / Cursor
+
+Add to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "tdf": {
+      "command": "python3",
+      "args": ["/path/to/tdf_mcp.py"],
+      "timeout": 30
+    }
+  }
+}
 ```
 
-## Usage
+### Hermes Agent
+
+```bash
+hermes config set mcp_servers '{"tdf":{"command":"python3","args":["/path/to/tdf_mcp.py"],"timeout":30}}'
+systemctl --user restart hermes-gateway.service
+```
+
+### SSE transport (remote agents)
+
+```bash
+python3 tdf_mcp.py --transport sse --host 0.0.0.0 --port 8000
+```
+
+Then configure your agent to connect to `http://your-host:8000/sse`.
+
+---
+
+## CLI Usage
 
 ### Results
 ```bash
@@ -115,17 +144,27 @@ Tour de France 2026 - Bluesky Live Feed
 
 - Python 3.9+
 - `requests` (ASO API, Bluesky, RSS)
-- `curl_cffi` (PCS - TLS-level Cloudflare bypass)
+- `curl_cffi` (PCS — TLS-level Cloudflare bypass)
 
-## Development
+```bash
+pip install requests curl_cffi
+```
+
+## Quick Install
+
+```bash
+curl -o /usr/local/bin/tdf https://raw.githubusercontent.com/harrisonk0/tdf-cli/main/tdf.py
+chmod +x /usr/local/bin/tdf
+tdf --help
+```
+
+Or clone the repo:
 
 ```bash
 git clone https://github.com/harrisonk0/tdf-cli.git
 cd tdf-cli
 python3 tdf.py --help
 ```
-
-The entire tool is a single Python file (`tdf.py`) with clear class structure — easy to extend.
 
 ## License
 
