@@ -1,6 +1,6 @@
-# TDF CLI 🚴
+# TDF CLI
 
-**Tour de France 2026 from your terminal** — live results, GPS tracking, race narrative, and individual rider splits, in one CLI tool.
+**Tour de France 2026 from your terminal** - live results, GPS tracking, race narrative, individual rider splits.
 
 ```bash
 tdf                          # Latest stage results
@@ -11,29 +11,27 @@ tdf 1 --splits               # Individual TTT splits for every rider
 
 ---
 
-## ⚡ MCP Server — for AI agents
+## MCP Server
 
-This is the headliner. The tool ships with a **Model Context Protocol (MCP) server** — any MCP-compatible AI agent (Claude Desktop, Cline, Cursor, Hermes Agent, Continue, Windsurf) can query the full Tour de France data stack directly.
+Built-in MCP server so Claude Desktop, Cline, Cursor, Hermes, Continue, or Windsurf can query Tour data directly.
 
-**13 tools available to AI agents:**
-
-| Tool | What it gives |
-|------|---------------|
-| `get_stage_result` | Full stage results with times + gaps |
+| Tool | Does |
+|------|------|
+| `get_stage_result` | Stage results with times and gaps |
 | `get_gc` | General classification (all 184 riders) |
-| `get_jerseys` | Yellow / Green / Polka / White holders |
+| `get_jerseys` | Yellow, Green, Polka Dot, White holders |
 | `get_live_state` | Real-time GPS, groups, speeds, weather |
-| `get_bluesky_feed` | Race narrative — punctures, crashes, tactics |
+| `get_bluesky_feed` | Race narrative - punctures, crashes, tactics |
 | `get_news` | RSS articles from cycling journalism |
 | `get_stage_profile` | Climb categories, altitude, length |
-| `get_ttt_splits` | Individual per-rider TTT splits |
+| `get_ttt_splits` | Per-rider TTT splits |
 | `get_speed_segments` | Average speed per stage segment |
 | `get_checkpoints` | Checkpoint locations with schedules |
-| `get_stage_checkpoint_splits` | Checkpoint timing gaps for top riders |
+| `get_stage_checkpoint_splits` | Checkpoint timing gaps |
 | `get_teams` | All 23 teams with codes |
 | `search_riders` | Rider lookup by name |
 
-Plus a `tdf://stages` resource listing all 21 stages.
+Also a `tdf://stages` resource listing all 21 stages.
 
 ### Claude Desktop / Cline / Cursor
 
@@ -71,6 +69,7 @@ Then configure your agent to connect to `http://your-host:8000/sse`.
 ## CLI Usage
 
 ### Results
+
 ```bash
 tdf                      # Latest stage results
 tdf 3                    # Stage 3 results
@@ -81,6 +80,7 @@ tdf --gc 1 --top 5       # General classification after stage 1
 ```
 
 ### Live
+
 ```bash
 tdf --live               # Current race state (GPS, groups, speeds)
 tdf --live --watch       # Auto-refresh every 15s
@@ -88,6 +88,7 @@ tdf --jerseys            # Current jersey holders
 ```
 
 ### Narrative
+
 ```bash
 tdf --bsky               # Latest Bluesky posts about the Tour
 tdf --bsky "Vauquelin"   # Search for a specific rider/topic
@@ -96,6 +97,7 @@ tdf --news               # RSS news feed
 ```
 
 ### Info
+
 ```bash
 tdf --stages             # All 21 stages
 tdf --teams              # All 23 teams
@@ -112,7 +114,7 @@ $ tdf 1 --top 5
 
 Stage 1: Barcelone > Barcelone (19.6km, TTT)
  Pos   Bib  Name                       Time        Gap
-   1    11  Jonas VINGEGAARD HANSEN    00:21:47.870           
+   1    11  Jonas VINGEGAARD HANSEN    00:21:47.870
    2    81  Egan BERNAL GOMEZ          00:21:55.200    +8.000s
    3     1  Tadej POGACAR              00:21:59.150   +12.000s
    4    31  Juan AYUSO PESQUERA        00:22:03.140   +16.000s
@@ -122,7 +124,7 @@ Stage 1: Barcelone > Barcelone (19.6km, TTT)
 ```
 $ tdf --bsky "Vauquelin puncture"
 
-Tour de France 2026 - Bluesky Live Feed
+Tour de France 2026 - Bluesky
   Time (UTC)  Author                          Post
   ----------------------------------------------------------------------------
     16:31:35  coureur.app                     Was that a puncture for Vauquelin? 😲
@@ -136,21 +138,19 @@ Tour de France 2026 - Bluesky Live Feed
 | Source | Data | Auth |
 |--------|------|------|
 | [ASO Racecenter API](https://racecenter.letour.fr) | Official times, GPS telemetry, stages, riders, teams | Free, no key |
-| [ProCyclingStats](https://procyclingstats.com) | Individual TTT splits, speed segments | Bypasses Cloudflare (TLS fingerprint) |
+| [ProCyclingStats](https://procyclingstats.com) | Individual TTT splits, speed segments | Cloudflare bypass (TLS fingerprint) |
 | [Bluesky API](https://docs.bsky.app) | Live social narrative | Free, no key |
 | [VeloNews](https://velo.outsideonline.com) + [Escape Collective](https://escapecollective.com) | News articles | Free RSS feeds |
 
 ## Requirements
 
-- Python 3.9+
-- `requests` (ASO API, Bluesky, RSS)
-- `curl_cffi` (PCS — TLS-level Cloudflare bypass)
+Python 3.9+, `requests`, `curl_cffi`.
 
 ```bash
 pip install requests curl_cffi
 ```
 
-## Quick Install
+## Install
 
 ```bash
 curl -o /usr/local/bin/tdf https://raw.githubusercontent.com/harrisonk0/tdf-cli/main/tdf.py
@@ -168,4 +168,4 @@ python3 tdf.py --help
 
 ## License
 
-MIT — do what you want with it.
+MIT - do what you want with it.
