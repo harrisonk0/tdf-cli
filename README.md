@@ -33,9 +33,28 @@ Built-in MCP server so Claude Desktop, Cline, Cursor, Hermes, Continue, or Winds
 
 Also a `tdf://stages` resource listing all 21 stages.
 
-### Claude Desktop / Cline / Cursor
+### Option A: hosted (no install)
 
-Add to your MCP config:
+Connect your MCP client to the public endpoint:
+
+```json
+{
+  "mcpServers": {
+    "tdf": {
+      "url": "https://tdf-mcp.up.railway.app/sse",
+      "timeout": 30
+    }
+  }
+}
+```
+
+No Python, no install — just add the URL.
+
+### Option B: local (self-host)
+
+Requirements: Python 3.9+, `pip install requests curl_cffi mcp`.
+
+**Claude Desktop / Cline / Cursor:**
 
 ```json
 {
@@ -49,14 +68,14 @@ Add to your MCP config:
 }
 ```
 
-### Hermes Agent
+**Hermes Agent:**
 
 ```bash
 hermes config set mcp_servers '{"tdf":{"command":"python3","args":["/path/to/tdf_mcp.py"],"timeout":30}}'
 systemctl --user restart hermes-gateway.service
 ```
 
-### SSE transport (remote agents)
+**Run your own SSE server:**
 
 ```bash
 python3 tdf_mcp.py --transport sse --host 0.0.0.0 --port 8000
