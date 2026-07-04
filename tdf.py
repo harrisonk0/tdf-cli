@@ -310,11 +310,9 @@ class PcsSource:
                     gap = gap_match.group(1) if gap_match else "winner"
                     riders.append({"firstname": firstname, "lastname": lastname, "gap": gap})
 
-            if riders and team_name:
-                existing = [t for t in teams if t["team"] == team_name]
-                if not existing or len(riders) > len(existing[0]["riders"]):
-                    teams = [t for t in teams if t["team"] != team_name]
-                    teams.append({"team": team_name, "riders": riders})
+            # Only include proper team tables (2-10 riders, not the 155-rider summary tables)
+            if riders and team_name and 2 <= len(riders) <= 10:
+                teams.append({"team": team_name, "riders": riders})
 
         return teams
 
@@ -374,6 +372,9 @@ class BlueskySource:
             params["since"] = since
         if tag:
             params["tag"] = tag
+            # Also add the hashtag to the query string for text-based matching
+            if f"#{tag}" not in query and tag not in query:
+                params["q"] = f"{query} #{tag}"
 
         r = requests.get(self.API, params=params, headers={"Accept": "application/json"}, timeout=15)
         if r.status_code != 200:
@@ -417,6 +418,13 @@ class RssSource:
                     if tdf_only and not is_tdf:
                         continue
 
+                    # Strip "Read the full article" leftover text from RSS descriptions
+                    if clean_desc:
+                        clean_desc = re.sub(
+                            r'^Read the full article at.*',
+                            '',
+                            clean_desc
+                        ).strip()
                     all_items.append({
                         "source": name,
                         "title": title,
@@ -457,6 +465,10 @@ def fmt_gap(ms):
 
 
 def clear_screen():
+    """Clear terminal screen, gracefully handling non-TTY environments."""
+    if not os.environ.get("TERM") and os.name != "nt":
+        print()
+        return
     os.system("cls" if os.name == "nt" else "clear")
 
 
@@ -533,9 +545,12 @@ def cmd_stage_result(aso, stage, top_n=0, show_cp=False, show_splits=False):
                         gap = fmt_gap(found["relative"])
                         if gap:
                             print(f" {gap:>14}", end="")
-                        else:
+                        elif found["relative"] == 0:
+                            # Leader at this checkpoint
                             t = fmt_time(found["absolute"])
                             print(f" {t[3:]:>14}", end="")
+                        else:
+                            print(f" {'0':>14}", end="")
                     else:
                         print(f" {'-':>14}", end="")
                 print()
@@ -691,6 +706,7 @@ def cmd_jerseys(aso, stage=0):
     print(f"Tour de France {YEAR} - Jersey Holders")
     if stage > 0:
         print(f"(after Stage {stage})")
+    print("(from live telemetry - during a race this shows current leader, not final GC)")
     print()
 
     for i in range(4):
@@ -959,6 +975,10 @@ Info:
     args = parser.parse_args()
     aso = AsoSource()
     stage = args.stage if args.stage > 0 else -1
+
+    # Validate explicit stage numbers
+    if args.stage == 0:
+        parser.error("stage number must be between 1 and 21")
 
     # Determine stage for commands that need one
     if stage < 0:
