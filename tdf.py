@@ -485,7 +485,28 @@ def cmd_live(aso, watch=False, interval=15):
 
         race_status = tel.get("RaceStatus", False)
         ygpw = tel.get("YGPW", [])
-        riders = tel.get("Riders", [])
+        raw_riders = tel.get("Riders", [])
+
+        # --- Data clean-up: ASO API often returns duplicate entries + stale GPS ---
+
+        # 1. Deduplicate by bib
+        seen_bibs = set()
+        riders = []
+        for r in raw_riders:
+            bib = r.get("Bib")
+            if bib and bib not in seen_bibs:
+                seen_bibs.add(bib)
+                riders.append(r)
+
+        # 2. Filter out impossible GPS positions against today's stage length
+        stage_length = None
+        today = datetime.now().strftime("%Y-%m-%d")
+        for s in aso.load_stages():
+            if s.get("date", "")[:10] == today:
+                stage_length = s.get("length", 0)
+                break
+        if stage_length is not None and stage_length > 0:
+            riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
 
         jersey_names = ["Yellow", "Green", "Polka", "White"]
         jersey_icons = ["🟡", "🟢", "🔴", "⚪"]
