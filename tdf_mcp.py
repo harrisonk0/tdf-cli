@@ -413,6 +413,8 @@ def main():
         mcp.settings.host = args.host
         mcp.settings.port = args.port
         mcp.settings.debug = False
+        # Clear DNS rebinding protection for Render/Cloudflare
+        mcp.settings.transport_security = None
         mcp.run(transport="sse")
     else:
         mcp.run(transport="stdio")
