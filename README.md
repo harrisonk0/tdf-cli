@@ -13,7 +13,7 @@ tdf 1 --splits               # Individual TTT splits for every rider
 
 ## MCP Server
 
-Built-in MCP server so Claude Desktop, Cline, Cursor, Hermes, Continue, or Windsurf can query Tour data directly.
+MCP server for Claude Desktop, Cline, Cursor, Hermes - any agent that speaks MCP.
 
 | Tool | Does |
 |------|------|
@@ -31,7 +31,7 @@ Built-in MCP server so Claude Desktop, Cline, Cursor, Hermes, Continue, or Winds
 | `get_teams` | All 23 teams with codes |
 | `search_riders` | Rider lookup by name |
 
-Also a `tdf://stages` resource listing all 21 stages.
+Also has a `tdf://stages` resource that lists all 21 stages.
 
 ### Option A: hosted (no install)
 
@@ -48,7 +48,7 @@ Connect your MCP client to the public endpoint:
 }
 ```
 
-No Python, no install — just add the URL. First call after idle might take ~10s while Render wakes up — after that it's instant.
+No Python, no install - just add the URL. First call after idle might take ~10s while Render wakes up - after that it's instant.
 
 ### Option B: local (self-host)
 
@@ -81,7 +81,7 @@ systemctl --user restart hermes-gateway.service
 python3 tdf_mcp.py --transport sse --host 0.0.0.0 --port 8000
 ```
 
-Then configure your agent to connect to `http://your-host:8000/sse`.
+Point your agent at `http://your-host:8000/sse`.
 
 ---
 
