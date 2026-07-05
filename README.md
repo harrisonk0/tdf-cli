@@ -1,6 +1,6 @@
 # TDF CLI
 
-**Tour de France 2026 from your terminal** - live results, GPS tracking, race narrative, individual rider splits.
+Live results, GPS tracking, race narrative, individual rider splits for Tour de France 2026.
 
 ```bash
 tdf                          # Latest stage results
@@ -13,7 +13,7 @@ tdf 1 --splits               # Individual TTT splits for every rider
 
 ## Quick start (hosted MCP)
 
-Wire this into any MCP client (Claude Desktop, Cline, Cursor, Hermes, whatever):
+Wire this into any MCP client (Claude Desktop, Cline, Cursor, whatever):
 
 ```json
 {
@@ -25,8 +25,6 @@ Wire this into any MCP client (Claude Desktop, Cline, Cursor, Hermes, whatever):
   }
 }
 ```
-
-No Python, no install - just the URL. First call after ~15 min idle takes ~10s while Render spins up, then it's instant.
 
 Available tools:
 
@@ -68,13 +66,6 @@ Requirements: Python 3.9+, `pip install requests curl_cffi mcp`.
     }
   }
 }
-```
-
-**Hermes Agent:**
-
-```bash
-hermes config set mcp_servers '{"tdf":{"command":"python3","args":["/path/to/tdf_mcp.py"],"timeout":30}}'
-systemctl --user restart hermes-gateway.service
 ```
 
 ### MCP (your own SSE server)
