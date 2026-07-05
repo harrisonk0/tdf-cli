@@ -1,0 +1,8 @@
+services:
+  - type: web
+    runtime: python
+    name: tdf-mcp
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python tdf_mcp.py --transport sse --host 0.0.0.0 --port $PORT

@@ -41,14 +41,14 @@ Connect your MCP client to the public endpoint:
 {
   "mcpServers": {
     "tdf": {
-      "url": "https://tdf-mcp.up.railway.app/sse",
+      "url": "https://tdf-mcp.onrender.com/sse",
       "timeout": 30
     }
   }
 }
 ```
 
-No Python, no install — just add the URL.
+No Python, no install — just add the URL. First call after idle might take ~10s while Render wakes up — after that it's instant.
 
 ### Option B: local (self-host)
 
