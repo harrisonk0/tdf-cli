@@ -211,6 +211,80 @@ def get_live_state() -> str:
 
 
 @mcp.tool()
+def get_rider_positions(rider_names: list[str]) -> str:
+    """Live GPS positions for specific riders by name. Pass one or more names (e.g. ['Pogacar', 'Vingegaard'])."""
+    global aso
+    aso.load_riders_teams()
+    tel = aso.get_telemetry()
+    if not tel:
+        return "No live data - race probably not in progress"
+
+    raw_riders = tel.get("Riders", [])
+    # Dedup by bib
+    seen_bibs = set()
+    riders = []
+    for r in raw_riders:
+        bib = r.get("Bib")
+        if bib and bib not in seen_bibs:
+            seen_bibs.add(bib)
+            riders.append(r)
+    # Filter bad GPS
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    stage_length = None
+    for s in aso.load_stages():
+        if s.get("date", "")[:10] == today:
+            stage_length = s.get("length", 0)
+            break
+    if stage_length is not None and stage_length > 0:
+        riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
+
+    if not riders:
+        return "No riders with valid GPS positions"
+
+    sorted_riders = sorted(riders, key=lambda r: r.get("kmToFinish", 999))
+    leader_km = sorted_riders[0].get("kmToFinish", 0)
+
+    # Match names
+    matches = []
+    for name in rider_names:
+        q = name.lower().replace(" ", "")
+        found_any = False
+        for bib, info in aso._riders.items():
+            full = f"{info['firstname']}{info['lastname']}".lower()
+            if q in full:
+                matches.append((bib, info))
+                found_any = True
+        if not found_any:
+            matches.append((None, {"firstname": name, "lastname": "(not found)", "team_code": "?"}))
+
+    tel_by_bib = {r.get("Bib"): r for r in riders}
+    lines = [f"Tour de France {YEAR} - Rider Positions"]
+    lines.append(f"Leader: {aso._riders.get(sorted_riders[0].get('Bib'), {}).get('lastname', '?')} at {leader_km:.2f}km")
+    lines.append("")
+    lines.append(f"{'Bib':>4}  {'Name':<26} {'Team':<22} {'kmToFin':>8} {'Gap':>6} {'Speed':>6} {'Grad%':>5} {'Status':>8}")
+    lines.append("-" * 90)
+    for bib, info in matches:
+        if bib is None:
+            lines.append(f"{'':>4}  {info['firstname']:<26} {'—':<22} {'NOT FOUND':>8}")
+            continue
+        entry = tel_by_bib.get(bib)
+        if entry:
+            km = entry.get("kmToFinish", 0)
+            gap = km - leader_km
+            lines.append(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<26} "
+                        f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                        f"{km:>8.2f} {gap:>+6.2f} "
+                        f"{entry.get('kph', 0):>6.1f} {entry.get('Gradient', 0):>5.1f} "
+                        f"{entry.get('Status', 'unknown'):>8}")
+        else:
+            lines.append(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<26} "
+                        f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                        f"{'NO GPS':>8} {'':>6} {'':>6} {'':>5} {'not tracked':>8}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
 def get_bluesky_feed(query: str = "Tour de France", limit: int = 10, tag: str = "") -> str:
     """Bluesky posts about the Tour. Optional hashtag filter (no #)."""
     since = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()

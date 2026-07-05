@@ -576,6 +576,73 @@ def cmd_live(aso, watch=False, interval=15):
         time.sleep(interval)
 
 
+def cmd_where(aso, names):
+    """Show live race position for specific riders by name."""
+    aso.load_riders_teams()
+    tel = aso.get_telemetry()
+    if not tel:
+        print("No live data - race probably not in progress")
+        return
+
+    raw_riders = tel.get("Riders", [])
+    # Dedup + filter
+    seen_bibs = set()
+    riders = []
+    for r in raw_riders:
+        bib = r.get("Bib")
+        if bib and bib not in seen_bibs:
+            seen_bibs.add(bib)
+            riders.append(r)
+    stage_length = None
+    today = datetime.now().strftime("%Y-%m-%d")
+    for s in aso.load_stages():
+        if s.get("date", "")[:10] == today:
+            stage_length = s.get("length", 0)
+            break
+    if stage_length is not None and stage_length > 0:
+        riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
+
+    sorted_riders = sorted(riders, key=lambda r: r.get("kmToFinish", 999))
+    leader_km = sorted_riders[0].get("kmToFinish", 0) if sorted_riders else 0
+
+    # Search rider database for matching names
+    matches = []
+    for name in names:
+        name_lower = name.lower().replace(" ", "")
+        found = False
+        for bib, info in aso._riders.items():
+            full = f"{info['firstname']}{info['lastname']}".lower()
+            if name_lower in full:
+                matches.append((bib, info, name))
+                found = True
+    if not matches:
+        print("No riders matched the given name(s). Try 'Pogacar' or 'Vingegaard'.")
+        return
+
+    # Map bib to telemetry
+    tel_by_bib = {r.get("Bib"): r for r in riders}
+
+    print(f"{'Bib':>4}  {'Name':<24} {'Team':<22} {'kmToFin':>8} {'Gap':>6} {'Speed':>6} {'Grad%':>5} {'Status':>8}")
+    print("-" * 90)
+    for bib, info, query in matches:
+        entry = tel_by_bib.get(bib)
+        if entry:
+            km = entry.get("kmToFinish", 0)
+            gap = km - leader_km
+            print(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<24} "
+                  f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                  f"{km:>8.2f} {gap:>+6.2f} "
+                  f"{entry.get('kph', 0):>6.1f} {entry.get('Gradient', 0):>5.1f} "
+                  f"{entry.get('Status', 'unknown'):>8}")
+        else:
+            print(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<24} "
+                  f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                  f"{'NOT TRACKED':>8} {'':>6} {'':>6} {'':>5} {'no GPS':>8}")
+    if sorted_riders:
+        print(f"\nLeader: {aso._riders.get(sorted_riders[0].get('Bib'), {}).get('lastname', '?')} "
+              f"at {leader_km:.2f}km to finish")
+
+
 def cmd_jerseys(aso, stage=0):
     aso.load_riders_teams()
     tel = aso.get_telemetry()
@@ -815,6 +882,8 @@ Info:
     parser.add_argument("--stages", action="store_true", help="List all stages")
     parser.add_argument("--teams", action="store_true", help="List all teams")
     parser.add_argument("--riders", action="store_true", help="List all riders")
+    parser.add_argument("--where", nargs="+", default=None, metavar="NAME",
+                        help="Track specific rider positions (e.g. --where Pogacar Vingegaard)")
     parser.add_argument("--checkpoints", action="store_true", help="Checkpoint locations")
     parser.add_argument("--profile", action="store_true", help="Stage climb profile")
     parser.add_argument("--bsky", nargs="?", const="Tour de France", default=None,
@@ -855,6 +924,8 @@ Info:
         cmd_teams(aso)
     elif args.riders:
         cmd_riders(aso, top_n=args.top)
+    elif args.where is not None:
+        cmd_where(aso, args.where)
     elif args.checkpoints:
         cmd_checkpoints(aso, stage)
     elif args.profile:
