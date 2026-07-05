@@ -11,9 +11,24 @@ tdf 1 --splits               # Individual TTT splits for every rider
 
 ---
 
-## MCP Server
+## Quick start (hosted MCP)
 
-MCP server for Claude Desktop, Cline, Cursor, Hermes - any agent that speaks MCP.
+Wire this into any MCP client (Claude Desktop, Cline, Cursor, Hermes, whatever):
+
+```json
+{
+  "mcpServers": {
+    "tdf": {
+      "url": "https://tdf-mcp.onrender.com/sse",
+      "timeout": 30
+    }
+  }
+}
+```
+
+No Python, no install - just the URL. First call after ~15 min idle takes ~10s while Render spins up, then it's instant.
+
+Available tools:
 
 | Tool | Does |
 |------|------|
@@ -33,24 +48,11 @@ MCP server for Claude Desktop, Cline, Cursor, Hermes - any agent that speaks MCP
 
 Also has a `tdf://stages` resource that lists all 21 stages.
 
-### Option A: hosted (no install)
+---
 
-Connect your MCP client to the public endpoint:
+## Self-host your own MCP/CLI
 
-```json
-{
-  "mcpServers": {
-    "tdf": {
-      "url": "https://tdf-mcp.onrender.com/sse",
-      "timeout": 30
-    }
-  }
-}
-```
-
-No Python, no install - just add the URL. First call after idle might take ~10s while Render wakes up - after that it's instant.
-
-### Option B: local (self-host)
+### MCP (local stdio)
 
 Requirements: Python 3.9+, `pip install requests curl_cffi mcp`.
 
@@ -75,7 +77,7 @@ hermes config set mcp_servers '{"tdf":{"command":"python3","args":["/path/to/tdf
 systemctl --user restart hermes-gateway.service
 ```
 
-**Run your own SSE server:**
+### MCP (your own SSE server)
 
 ```bash
 python3 tdf_mcp.py --transport sse --host 0.0.0.0 --port 8000
@@ -83,50 +85,26 @@ python3 tdf_mcp.py --transport sse --host 0.0.0.0 --port 8000
 
 Point your agent at `http://your-host:8000/sse`.
 
+### CLI
+
+```bash
+pip install requests curl_cffi
+curl -o /usr/local/bin/tdf https://raw.githubusercontent.com/harrisonk0/tdf-cli/main/tdf.py
+chmod +x /usr/local/bin/tdf
+tdf --help
+```
+
+Or clone the repo:
+
+```bash
+git clone https://github.com/harrisonk0/tdf-cli.git
+cd tdf-cli
+python3 tdf.py --help
+```
+
 ---
 
-## CLI Usage
-
-### Results
-
-```bash
-tdf                      # Latest stage results
-tdf 3                    # Stage 3 results
-tdf 1 --top 10           # Top 10 for stage 1
-tdf 1 --cp               # Checkpoint splits
-tdf 1 --splits           # Individual TTT/ITT splits (per team)
-tdf --gc 1 --top 5       # General classification after stage 1
-```
-
-### Live
-
-```bash
-tdf --live               # Current race state (GPS, groups, speeds)
-tdf --live --watch       # Auto-refresh every 15s
-tdf --jerseys            # Current jersey holders
-```
-
-### Narrative
-
-```bash
-tdf --bsky               # Latest Bluesky posts about the Tour
-tdf --bsky "Vauquelin"   # Search for a specific rider/topic
-tdf --bsky --tag TDF2026 # Filter by hashtag
-tdf --news               # RSS news feed
-```
-
-### Info
-
-```bash
-tdf --stages             # All 21 stages
-tdf --teams              # All 23 teams
-tdf --riders             # All 184 riders
-tdf --checkpoints 6      # Checkpoint locations for stage 6
-tdf --profile 19         # Stage 19 climb profile (Alpe d'Huez)
-tdf --speed 1            # Average speed per segment
-```
-
-## Example Output
+## Example
 
 ```
 $ tdf 1 --top 5
@@ -152,6 +130,8 @@ Tour de France 2026 - Bluesky
     17:11:47  tntsports.zpravobot             Kevin Vauquelin suffered a puncture... yellow jersey hopes vanished
 ```
 
+---
+
 ## Data Sources
 
 | Source | Data | Auth |
@@ -160,30 +140,6 @@ Tour de France 2026 - Bluesky
 | [ProCyclingStats](https://procyclingstats.com) | Individual TTT splits, speed segments | Cloudflare bypass (TLS fingerprint) |
 | [Bluesky API](https://docs.bsky.app) | Live social narrative | Free, no key |
 | [VeloNews](https://velo.outsideonline.com) + [Escape Collective](https://escapecollective.com) | News articles | Free RSS feeds |
-
-## Requirements
-
-Python 3.9+, `requests`, `curl_cffi`.
-
-```bash
-pip install requests curl_cffi
-```
-
-## Install
-
-```bash
-curl -o /usr/local/bin/tdf https://raw.githubusercontent.com/harrisonk0/tdf-cli/main/tdf.py
-chmod +x /usr/local/bin/tdf
-tdf --help
-```
-
-Or clone the repo:
-
-```bash
-git clone https://github.com/harrisonk0/tdf-cli.git
-cd tdf-cli
-python3 tdf.py --help
-```
 
 ## License
 
