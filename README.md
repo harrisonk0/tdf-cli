@@ -5,6 +5,7 @@
 ```bash
 tdf                          # Latest stage results
 tdf --live --watch           # Live race state (GPS, speeds, groups)
+tdf --where Pogacar Vingegaard  # Where are specific riders right now?
 tdf --bsky "Vauquelin"       # Bluesky narrative about a rider
 tdf 1 --splits               # Individual TTT splits for every rider
 ```
@@ -34,6 +35,7 @@ Available tools:
 | `get_gc` | General classification (all 184 riders) |
 | `get_jerseys` | Yellow, Green, Polka Dot, White holders |
 | `get_live_state` | Real-time GPS, groups, speeds, weather |
+| `get_rider_positions` | GPS position for specific riders by name |
 | `get_bluesky_feed` | Race narrative - punctures, crashes, tactics |
 | `get_news` | RSS articles from cycling journalism |
 | `get_stage_profile` | Climb categories, altitude, length |
@@ -119,6 +121,16 @@ Tour de France 2026 - Bluesky
     16:32:31  djcaress.bsky.social            Looks like I jinxed Vauquelin, absolutely gutted for him
     16:38:27  simiscyclist.bsky.social        I think they had them with Vauquelin but the puncture messed everything up
     17:11:47  tntsports.zpravobot             Kevin Vauquelin suffered a puncture... yellow jersey hopes vanished
+```
+
+```
+$ tdf --where Pogacar Van der Poel Evenepoel
+
+Tour de France 2026 - Live Positions
+ Bib  Name                       Team                    kmToFin    Gap  Speed Grad%   Status
+   1  Tadej POGACAR              UEX                      104.84  +1.65   32.8   1.0   active
+ 101  Mathieu VAN DER POEL       APT                      104.86  +1.67   31.9   1.0   active
+  21  Remco EVENEPOEL            RBH                      104.87  +1.68   38.2   1.0   active
 ```
 
 ---
