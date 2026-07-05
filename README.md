@@ -1,6 +1,6 @@
 # TDF CLI
 
-Live results, GPS tracking, race narrative, individual rider splits for Tour de France 2026.
+2026 Tour de France results, live tracking, and race narrative from your terminal.
 
 ```bash
 tdf                          # Latest stage results
@@ -13,7 +13,7 @@ tdf 1 --splits               # Individual TTT splits for every rider
 
 ## Quick start (hosted MCP)
 
-Wire this into any MCP client (Claude Desktop, Cline, Cursor, whatever):
+Add this to your MCP config:
 
 ```json
 {
@@ -44,7 +44,7 @@ Available tools:
 | `get_teams` | All 23 teams with codes |
 | `search_riders` | Rider lookup by name |
 
-Also has a `tdf://stages` resource that lists all 21 stages.
+`tdf://stages` resource lists all 21 stages.
 
 ---
 
