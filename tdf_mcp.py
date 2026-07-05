@@ -403,7 +403,17 @@ def main():
     args = parser.parse_args()
 
     if args.transport == "sse":
-        mcp.run(transport="sse", host=args.host, port=args.port)
+        # Render sets $PORT env var instead of --port flag
+        env_port = os.environ.get("PORT")
+        if env_port:
+            try:
+                args.port = int(env_port)
+            except ValueError:
+                pass
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.settings.debug = False
+        mcp.run(transport="sse")
     else:
         mcp.run(transport="stdio")
 
