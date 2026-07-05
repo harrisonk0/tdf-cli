@@ -251,7 +251,7 @@ def get_rider_positions(rider_names: list[str]) -> str:
         q = name.lower().replace(" ", "")
         found_any = False
         for bib, info in aso._riders.items():
-            full = f"{info['firstname']}{info['lastname']}".lower()
+            full = f"{info['firstname']}{info['lastname']}".lower().replace(" ", "")
             if q in full:
                 matches.append((bib, info))
                 found_any = True

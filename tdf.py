@@ -611,7 +611,7 @@ def cmd_where(aso, names):
         name_lower = name.lower().replace(" ", "")
         found = False
         for bib, info in aso._riders.items():
-            full = f"{info['firstname']}{info['lastname']}".lower()
+            full = f"{info['firstname']}{info['lastname']}".lower().replace(" ", "")
             if name_lower in full:
                 matches.append((bib, info, name))
                 found = True
