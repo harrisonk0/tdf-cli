@@ -53,7 +53,7 @@ def get_stage_result(stage: int, top_n: int = 0) -> str:
     """Stage results: times and gaps. stage=-1 for latest."""
     if stage < 1:
         stage = aso.find_latest_stage()
-    finish = aso.get_finish_rankings(stage)
+    finish = aso.get_finish_rankings(stage, finish_type="ite")
     if not finish:
         return f"Stage {stage} hasn't happened yet"
 

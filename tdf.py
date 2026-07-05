@@ -129,10 +129,15 @@ class AsoSource:
             return []
         return [e for e in data if isinstance(e, dict) and "rankings" in e]
 
-    def get_finish_rankings(self, stage, classification=None):
+    def get_finish_rankings(self, stage, classification=None, finish_type=None):
         cps = self.get_rankings(stage, classification)
         if not cps:
             return None
+        if finish_type:
+            filtered = [c for c in cps if c.get("type") == finish_type]
+            if filtered:
+                return filtered[0]
+        # Fallback: prefer GC (itg), then highest-distance checkpoint
         itg = [c for c in cps if c.get("type") == "itg"]
         if itg:
             return itg[0]
