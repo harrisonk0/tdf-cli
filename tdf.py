@@ -203,7 +203,8 @@ class PcsSource:
             try:
                 from curl_cffi import requests as cffi_requests
                 self._session = cffi_requests.Session()
-            except ImportError:
+            except ImportError as e:
+                print(f"curl_cffi not available: {e}", file=sys.stderr)
                 return None
         return self._session
 
