@@ -137,10 +137,11 @@ class AsoSource:
             filtered = [c for c in cps if c.get("type") == finish_type]
             if filtered:
                 return filtered[0]
-        # Fallback: prefer GC (itg), then highest-distance checkpoint
-        itg = [c for c in cps if c.get("type") == "itg"]
-        if itg:
-            return itg[0]
+        # Fallback: prefer stage finish (ite), then GC (itg), then highest-distance
+        for preferred in ("ite", "itg"):
+            matches = [c for c in cps if c.get("type") == preferred]
+            if matches:
+                return matches[0]
         return max(cps, key=lambda c: c.get("length", 0))
 
     def get_telemetry(self):
