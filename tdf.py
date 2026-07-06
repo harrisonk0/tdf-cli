@@ -71,7 +71,7 @@ class AsoSource:
                     }
         team_data = self._get(f"team-{YEAR}")
         if team_data:
-            self._teams = {t["_id"]: t for t in team_data}
+            self._teams = {t["_id"]: t for t in team_data if "_id" in t}
         for bib, rider in self._riders.items():
             team = self._teams.get(rider["team_id"])
             if team:
