@@ -16,6 +16,14 @@ import requests
 
 ASO_BASE = "https://racecenter.letour.fr/api"
 YEAR = 2026  # Update annually
+# ASO API type codes:
+#   itg = individual time general (GC cumulative)
+#   ite = individual time event (stage finish result)
+#   ipe = intermediate points event (sprint)
+#   ipg = intermediate points general (points classification)
+#   img = intermediate mountains general (KOM classification)
+#   YGPW = [Yellow, Green, Polka, White] jersey bib indices
+# Stage types: EQU=TTT, IND=ITT, HMG=Mountain, MOG=Road, PAS=Mountain, PLN=Flat, VAL=Road
 CACHE_DIR = Path.home() / ".tdf_cache"
 CACHE_TTL = 3600
 
