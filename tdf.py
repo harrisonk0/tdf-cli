@@ -528,7 +528,8 @@ def cmd_live(aso, watch=False, interval=15):
                 r = aso._riders.get(ygpw[i])
                 if r:
                     jersey_parts.append(f"{jersey_icons[i]}{jersey_names[i][0]}={r['firstname']} {r['lastname']}")
-        print(f"Jerseys: {'  '.join(jersey_parts)}")
+        if jersey_parts:
+            print(f"Jerseys: {'  '.join(jersey_parts)}")
 
         if riders:
             r0 = riders[0]
