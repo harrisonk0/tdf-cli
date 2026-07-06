@@ -7,6 +7,7 @@ import json
 import sys
 import os
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR
@@ -150,7 +151,7 @@ def get_live_state() -> str:
     # 2. Filter out impossible GPS positions: find today's stage length, drop
     #    entries whose kmToFinish exceeds it (stale pre-start positions).
     stage_length = None
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
     for s in aso.load_stages():
         if s.get("date", "")[:10] == today:
             stage_length = s.get("length", 0)
@@ -226,7 +227,7 @@ def get_rider_positions(rider_names: list[str]) -> str:
             seen_bibs.add(bib)
             riders.append(r)
     # Filter bad GPS
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
     stage_length = None
     for s in aso.load_stages():
         if s.get("date", "")[:10] == today:

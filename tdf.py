@@ -8,6 +8,7 @@ import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from html import unescape
 from xml.etree import ElementTree as ET
 from pathlib import Path
@@ -518,7 +519,7 @@ def cmd_live(aso, watch=False, interval=15):
 
         # 2. Filter out impossible GPS positions against today's stage length
         stage_length = None
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
         for s in aso.load_stages():
             if s.get("date", "")[:10] == today:
                 stage_length = s.get("length", 0)
@@ -611,7 +612,7 @@ def cmd_where(aso, names):
             seen_bibs.add(bib)
             riders.append(r)
     stage_length = None
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
     for s in aso.load_stages():
         if s.get("date", "")[:10] == today:
             stage_length = s.get("length", 0)
