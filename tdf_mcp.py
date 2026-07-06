@@ -7,7 +7,6 @@ import json
 import sys
 import os
 from datetime import datetime, timezone, timedelta
-from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile, format_checkpoints, format_speed_segments
@@ -61,7 +60,7 @@ def get_gc(stage: int = -1, top_n: int = 10) -> str:
     """General classification after a stage. stage=-1 for latest."""
     if stage < 1:
         stage = aso.find_latest_stage()
-    finish = aso.get_finish_rankings(stage, "rankingType")
+    finish = aso.get_finish_rankings(stage, "rankingType", finish_type="itg")
     if not finish:
         return f"No GC data for stage {stage}"
 
@@ -184,13 +183,13 @@ def get_rider_positions(rider_names: list[str]) -> str:
             km = entry.get("kmToFinish", 0)
             gap = km - leader_km
             lines.append(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<26} "
-                        f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                        f"{info.get('team_name', info['team_code']):<22} "
                         f"{km:>8.2f} {gap:>+6.2f} "
                         f"{entry.get('kph', 0):>6.1f} {entry.get('Gradient', 0):>5.1f} "
                         f"{entry.get('Status', 'unknown'):>8}")
         else:
             lines.append(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<26} "
-                        f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                        f"{info.get('team_name', info['team_code']):<22} "
                         f"{'NO GPS':>8} {'':>6} {'':>6} {'':>5} {'not tracked':>8}")
     return "\n".join(lines)
 

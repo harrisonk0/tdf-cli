@@ -9,7 +9,6 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
-from html import unescape
 from xml.etree import ElementTree as ET
 from pathlib import Path
 
@@ -539,7 +538,7 @@ def cmd_gc(aso, stage, top_n=0):
     aso.load_riders_teams()
     if stage < 1:
         stage = aso.find_latest_stage()
-    finish = aso.get_finish_rankings(stage, "rankingType")
+    finish = aso.get_finish_rankings(stage, "rankingType", finish_type="itg")
     if not finish:
         print(f"No GC data for stage {stage}")
         return
@@ -669,13 +668,13 @@ def cmd_where(aso, names):
             km = entry.get("kmToFinish", 0)
             gap = km - leader_km
             print(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<24} "
-                  f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                  f"{info.get('team_name', info['team_code']):<22} "
                   f"{km:>8.2f} {gap:>+6.2f} "
                   f"{entry.get('kph', 0):>6.1f} {entry.get('Gradient', 0):>5.1f} "
                   f"{entry.get('Status', 'unknown'):>8}")
         else:
             print(f"{bib:>4}  {info['firstname'] + ' ' + info['lastname']:<24} "
-                  f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
+                  f"{info.get('team_name', info['team_code']):<22} "
                   f"{'NOT TRACKED':>8} {'':>6} {'':>6} {'':>5} {'no GPS':>8}")
     if sorted_riders:
         print(f"\nLeader: {(aso.get_rider(sorted_riders[0].get('Bib')) or {}).get('lastname', '?')} "
