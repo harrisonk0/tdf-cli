@@ -34,15 +34,27 @@ class AsoSource:
         self._riders = None
         self._teams = None
         self._stages = None
+        self._cache = {}  # path -> (timestamp, data)
 
     def _get(self, path, timeout=15):
+        # Check in-memory cache
+        now = time.time()
+        if path in self._cache:
+            ts, data = self._cache[path]
+            # Telemetry: 30s TTL, everything else: 300s
+            ttl = 30 if "telemetry" in path else 300
+            if now - ts < ttl:
+                return data
+
         r = requests.get(f"{ASO_BASE}/{path}",
             headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
             timeout=timeout)
         if r.status_code == 204 or not r.text:
             return None
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        self._cache[path] = (now, data)
+        return data
 
     def load_stages(self):
         if self._stages is not None:
