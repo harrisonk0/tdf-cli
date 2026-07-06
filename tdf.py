@@ -351,6 +351,8 @@ class RssSource:
 
 
 def fmt_time(ms):
+    if ms is None or ms < 0:
+        return "—"
     s = ms // 1000
     return f"{s // 3600:02d}:{(s // 60) % 60:02d}:{s % 60:02d}.{ms % 1000:03d}"
 
