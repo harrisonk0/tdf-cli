@@ -371,7 +371,7 @@ def clear_screen():
     if not os.environ.get("TERM") and os.name != "nt":
         print()
         return
-    os.system("cls" if os.name == "nt" else "clear")
+    print("\033[2J\033[H", end="")
 
 def truncate(s, n):
     return s[:n-1] + "…" if len(s) > n else s
