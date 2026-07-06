@@ -224,8 +224,8 @@ class PcsSource:
                 CACHE_DIR.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(r.text)
                 return r.text
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"PCS fetch failed: {e}", file=sys.stderr)
         return None
 
     def get_ttt_splits(self, stage):
@@ -273,7 +273,8 @@ class PcsSource:
             r = session.get(url, impersonate="chrome120", timeout=20)
             if r.status_code != 200:
                 return None
-        except Exception:
+        except Exception as e:
+            print(f"PCS speed segments fetch failed: {e}", file=sys.stderr)
             return None
 
         html = r.text
@@ -351,7 +352,8 @@ class RssSource:
                         "link": link,
                         "is_tdf": is_tdf,
                     })
-            except Exception:
+            except Exception as e:
+                print(f"RSS feed {name} parse failed: {e}", file=sys.stderr)
                 continue
 
         all_items.sort(key=lambda x: x["pub_date"], reverse=True)
@@ -919,7 +921,8 @@ Info:
     if stage < 0:
         try:
             stage = aso.find_latest_stage()
-        except Exception:
+        except Exception as e:
+            print(f"find_latest_stage failed: {e}", file=sys.stderr)
             stage = 1
 
     watch = args.watch > 0
