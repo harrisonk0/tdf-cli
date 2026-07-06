@@ -748,11 +748,12 @@ def cmd_news(aso, watch=False, interval=60):
         time.sleep(interval)
 
 
-def cmd_stages(aso):
+def format_stages(aso):
+    """Format all stages as a table."""
     stages = aso.load_stages()
-    print(f"Tour de France {YEAR} - {len(stages)} Stages")
-    print(f"{'Stg':>4}  {'Date':<12}  {'From':<30} {'To':<30} {'KM':>6}  {'Type':<10}")
-    print("-" * 100)
+    lines = [f"Tour de France {YEAR} - {len(stages)} Stages"]
+    lines.append(f"{'Stg':>4}  {'Date':<12}  {'From':<30} {'To':<30} {'KM':>6}  {'Type'}")
+    lines.append("-" * 100)
     for s in stages:
         stage = s.get("stage", 0)
         date = s.get("date", "")[:10]
@@ -760,7 +761,12 @@ def cmd_stages(aso):
         arr = s.get("arrivalCity", {}).get("label", "?")
         length = s.get("length", 0)
         stype = aso.stage_type(stage)
-        print(f"{stage:>4}  {date:<12}  {truncate(dep,30):<30} {truncate(arr,30):<30} {length:>6.0f}  {stype:<10}")
+        lines.append(f"{stage:>4}  {date:<12}  {truncate(dep,30):<30} {truncate(arr,30):<30} {length:>6.0f}  {stype}")
+    return "\n".join(lines)
+
+
+def cmd_stages(aso):
+    print(format_stages(aso))
 
 
 def cmd_teams(aso):

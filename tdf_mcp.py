@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -33,19 +33,7 @@ Times in CET/CEST (ASO timing system operates in Central European Time for TDF).
 
 @mcp.resource("tdf://stages")
 def get_stages() -> str:
-    stages = aso.load_stages()
-    lines = [f"Tour de France {YEAR} - {len(stages)} Stages"]
-    lines.append(f"{'Stg':>4}  {'Date':<12}  {'From':<30} {'To':<30} {'KM':>6}  {'Type'}")
-    lines.append("-" * 100)
-    for s in stages:
-        stage = s.get("stage", 0)
-        date = s.get("date", "")[:10]
-        dep = s.get("departureCity", {}).get("label", "?")
-        arr = s.get("arrivalCity", {}).get("label", "?")
-        length = s.get("length", 0)
-        stype = aso.stage_type(stage)
-        lines.append(f"{stage:>4}  {date:<12}  {truncate(dep,30):<30} {truncate(arr,30):<30} {length:>6.0f}  {stype}")
-    return "\n".join(lines)
+    return format_stages(aso)
 
 
 @mcp.tool()
