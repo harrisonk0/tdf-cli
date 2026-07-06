@@ -410,7 +410,7 @@ def cmd_stage_result(aso, stage, top_n=0, show_cp=False, show_splits=False):
     print(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
     print("-" * 95)
 
-    rankings = finish["rankings"]
+    rankings = finish.get("rankings", [])
     limit = min(top_n, len(rankings)) if top_n else len(rankings)
     for r in rankings[:limit]:
         bib = r["bib"]
@@ -480,7 +480,7 @@ def cmd_gc(aso, stage, top_n=0):
     print(f"\nGeneral Classification after Stage {stage}")
     print(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
     print("-" * 95)
-    rankings = finish["rankings"]
+    rankings = finish.get("rankings", [])
     limit = min(top_n, len(rankings)) if top_n else len(rankings)
     for r in rankings[:limit]:
         bib = r["bib"]

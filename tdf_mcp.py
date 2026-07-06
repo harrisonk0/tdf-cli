@@ -67,7 +67,7 @@ def get_stage_result(stage: int, top_n: int = 0) -> str:
     lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
     lines.append("-" * 95)
 
-    rankings = finish["rankings"]
+    rankings = finish.get("rankings", [])
     limit = min(top_n, len(rankings)) if top_n else len(rankings)
     for r in rankings[:limit]:
         bib = r["bib"]
@@ -92,7 +92,7 @@ def get_gc(stage: int = -1, top_n: int = 10) -> str:
     lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
     lines.append("-" * 95)
 
-    rankings = finish["rankings"]
+    rankings = finish.get("rankings", [])
     limit = min(top_n, len(rankings)) if top_n else len(rankings)
     for r in rankings[:limit]:
         bib = r["bib"]
