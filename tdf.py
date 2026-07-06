@@ -769,14 +769,20 @@ def cmd_stages(aso):
     print(format_stages(aso))
 
 
-def cmd_teams(aso):
+def format_teams(aso):
+    """Format all teams as a table."""
     _, teams = aso.load_riders_teams()
     team_list = sorted(teams.values(), key=lambda t: t.get("name", ""))
-    print(f"Tour de France {YEAR} - Teams ({len(team_list)})")
-    print(f"{'#':>3}  {'Team Name':<40}  {'Code':<6}  {'Country':<10}")
-    print("-" * 65)
+    lines = [f"Tour de France {YEAR} - Teams ({len(team_list)})"]
+    lines.append(f"{'#':>3}  {'Team Name':<40}  {'Code':<6}  {'Country'}")
+    lines.append("-" * 65)
     for i, t in enumerate(team_list, 1):
-        print(f"{i:>3}  {truncate(t.get('name',''),40):<40}  {t.get('code',''):<6}  {t.get('nationality',''):<10}")
+        lines.append(f"{i:>3}  {truncate(t.get('name',''),40):<40}  {t.get('code',''):<6}  {t.get('nationality','')}")
+    return "\n".join(lines)
+
+
+def cmd_teams(aso):
+    print(format_teams(aso))
 
 
 def cmd_riders(aso, top_n=0):

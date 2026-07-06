@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -350,14 +350,7 @@ def search_riders(query: str) -> str:
 @mcp.tool()
 def get_teams() -> str:
     """All 23 teams with codes and nationalities."""
-    _, teams = aso.load_riders_teams()
-    team_list = sorted(teams.values(), key=lambda t: t.get("name", ""))
-    lines = [f"Tour de France {YEAR} - Teams ({len(team_list)})"]
-    lines.append(f"{'#':>3}  {'Team Name':<40}  {'Code':<6}  {'Country'}")
-    lines.append("-" * 65)
-    for i, t in enumerate(team_list, 1):
-        lines.append(f"{i:>3}  {truncate(t.get('name',''),40):<40}  {t.get('code',''):<6}  {t.get('nationality','')}")
-    return "\n".join(lines)
+    return format_teams(aso)
 
 
 @mcp.tool()
