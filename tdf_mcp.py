@@ -537,9 +537,9 @@ def get_route_weather(stage: int) -> str:
     start_coords = None
     finish_coords = None
     for name, coords in LOCATION_COORDS.items():
-        if name in dep_key:
+        if name == dep_key:
             start_coords = coords
-        if name in arr_key:
+        if name == arr_key:
             finish_coords = coords
     
     if not start_coords or not finish_coords:
