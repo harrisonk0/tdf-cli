@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile, format_checkpoints
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -280,30 +280,7 @@ def get_speed_segments(stage: int) -> str:
 @mcp.tool()
 def get_checkpoints(stage: int) -> str:
     """Checkpoint locations with road names, schedules, and climbs."""
-    cps = aso.get_checkpoints(stage)
-    if not cps:
-        return f"No checkpoints for stage {stage}"
-
-    info = aso.stage_info(stage)
-    dep = info.get("departureCity", {}).get("label", "?")
-    arr = info.get("arrivalCity", {}).get("label", "?")
-    lines = [f"Stage {stage}: {dep} > {arr} - Checkpoints ({len(cps)})"]
-    lines.append(f"{'CP':>4}  {'KM':>7}  {'Type':<8}  {'Road':<35}  {'Place':<20}  {'Schedule':<12}  {'Climb'}")
-    lines.append("-" * 120)
-
-    for cp in cps:
-        cp_num = cp.get("checkpoint", "?")
-        length = cp.get("length", 0)
-        road = cp.get("road", "")
-        place = cp.get("place", "")
-        sched = cp.get("middleSchedule", "")
-        type_str = "".join(ct.get("code", "") for ct in cp.get("checkpointTypes", []))
-        climb = ""
-        for s in cp.get("checkpointSummits", []):
-            sinfo = s.get("summit", {})
-            climb = f"{sinfo.get('name', '')} ({sinfo.get('altitude', 0):.0f}m, {s.get('length', 0):.0f}m)"
-        lines.append(f"{cp_num:>4}  {length:>7.1f}  {type_str:<8}  {truncate(road,35):<35}  {truncate(place,20):<20}  {sched:<12}  {climb}")
-    return "\n".join(lines)
+    return format_checkpoints(aso, stage)
 
 
 @mcp.tool()

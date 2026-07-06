@@ -798,18 +798,17 @@ def cmd_riders(aso, top_n=0):
               f"{r.get('team_code',''):<6}  {truncate(r.get('team_name',''),40):<40}")
 
 
-def cmd_checkpoints(aso, stage):
+def format_checkpoints(aso, stage):
+    """Format checkpoint locations with road names, schedules, and climbs."""
     cps = aso.get_checkpoints(stage)
     if not cps:
-        print(f"No checkpoints for stage {stage}")
-        return
+        return f"No checkpoints for stage {stage}"
     info = aso.stage_info(stage)
     dep = info.get("departureCity", {}).get("label", "?")
     arr = info.get("arrivalCity", {}).get("label", "?")
-    print(f"Stage {stage}: {dep} > {arr} - Checkpoints ({len(cps)})")
-    print(f"{'CP':>4}  {'KM':>7}  {'Type':<8}  {'Road/Location':<35}  {'Place':<20}  {'Schedule':<12}  {'Climb'}")
-    print("-" * 120)
-
+    lines = [f"Stage {stage}: {dep} > {arr} - Checkpoints ({len(cps)})"]
+    lines.append(f"{'CP':>4}  {'KM':>7}  {'Type':<8}  {'Road':<35}  {'Place':<20}  {'Schedule':<12}  {'Climb'}")
+    lines.append("-" * 120)
     for cp in cps:
         cp_num = cp.get("checkpoint", "?")
         length = cp.get("length", 0)
@@ -821,8 +820,12 @@ def cmd_checkpoints(aso, stage):
         for s in cp.get("checkpointSummits", []):
             sinfo = s.get("summit", {})
             climb = f"{sinfo.get('name', '')} ({sinfo.get('altitude', 0):.0f}m, {s.get('length', 0):.0f}m)"
-        print(f"{cp_num:>4}  {length:>7.1f}  {type_str:<8}  {truncate(road,35):<35}  "
-              f"{truncate(place,20):<20}  {sched:<12}  {climb}")
+        lines.append(f"{cp_num:>4}  {length:>7.1f}  {type_str:<8}  {truncate(road,35):<35}  {truncate(place,20):<20}  {sched:<12}  {climb}")
+    return "\n".join(lines)
+
+
+def cmd_checkpoints(aso, stage):
+    print(format_checkpoints(aso, stage))
 
 
 def format_stage_profile(aso, stage):
