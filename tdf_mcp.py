@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR
 
 from mcp.server.fastmcp import FastMCP
+import requests as http_requests
 
 aso = AsoSource()
 pcs = PcsSource()
@@ -489,6 +490,161 @@ def get_stage_checkpoint_splits(stage: int, top_n: int = 10) -> str:
             else:
                 row += f" {'-':>14}"
         lines.append(row)
+    return "\n".join(lines)
+
+
+# Known coordinates for key TDF locations
+LOCATION_COORDS = {
+    # Stage starts/finishes
+    "granollers": (41.608, 2.288),
+    "les angles": (42.573, 2.068),
+    "lille": (50.629, 3.057),
+    "london": (51.507, -0.128),
+    "bordeaux": (44.837, -0.579),
+    "toulouse": (43.604, 1.444),
+    "montpellier": (43.610, 3.876),
+    "nice": (43.710, 7.262),
+    "paris": (48.856, 2.352),
+    # Key climbs
+    "col de toses": (42.353, 2.018),
+    "col du galibier": (45.064, 6.408),
+    "col du tourmalet": (42.908, 0.145),
+    "alpe d'huez": (45.092, 6.071),
+    "mont ventoux": (44.174, 5.276),
+    "col d'aubisque": (42.973, -0.165),
+    "col du calvaire": (42.504, 2.038),
+    "font-romeu": (42.504, 2.038),
+    "col de la madeleine": (45.435, 6.372),
+    "col de la croix de fer": (45.229, 6.201),
+    "col de l'izeran": (45.311, 6.532),
+    "col du platzerwasel": (47.949, 7.034),
+    "col du firstplan": (47.966, 7.048),
+    "hautacam": (42.917, -0.018),
+    "luz-ardiden": (42.871, 0.003),
+    "pic du midi": (42.937, 0.141),
+}
+
+
+@mcp.tool()
+def get_route_weather(stage: int) -> str:
+    """Weather forecast at key points along a stage route (Open-Meteo API)."""
+    info = aso.stage_info(stage)
+    if not info:
+        return f"No info for stage {stage}"
+    
+    dep = info.get("departureCity", {}).get("label", "?")
+    arr = info.get("arrivalCity", {}).get("label", "?")
+    
+    # Get coordinates for start and finish
+    dep_key = dep.lower().split(",")[0].strip()
+    arr_key = arr.lower().split(",")[0].strip()
+    
+    start_coords = None
+    finish_coords = None
+    for name, coords in LOCATION_COORDS.items():
+        if name in dep_key:
+            start_coords = coords
+        if name in arr_key:
+            finish_coords = coords
+    
+    if not start_coords or not finish_coords:
+        return f"Coordinates not available for {dep} > {arr}. Known locations: {', '.join(sorted(LOCATION_COORDS.keys())[:20])}..."
+    
+    wmo_desc = {0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast",
+                45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle",
+                55: "Heavy drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain",
+                71: "Light snow", 73: "Snow", 75: "Heavy snow", 80: "Light showers",
+                81: "Showers", 82: "Heavy showers", 95: "Thunderstorm", 96: "T-storm hail"}
+    
+    # Get climb coordinates if available
+    climbs = []
+    for entry in aso.get_stage_profile(stage):
+        if entry["type"] == "climb":
+            climb_name = entry["name"].lower()
+            for name, coords in LOCATION_COORDS.items():
+                if name in climb_name:
+                    # Use the short name from our coords dict, not the full ASO name
+                    climbs.append((name.title(), coords, entry["altitude"]))
+                    break
+    
+    lines = [f"Stage {stage}: {dep} > {arr} - Route Weather"]
+    lines.append("")
+    
+    # Check weather at each point
+    points = [(f"{dep} (Start)", start_coords)]
+    for name, coords, alt in climbs:
+        points.append((f"{name} ({alt:.0f}m)", coords))
+    points.append((f"{arr} (Finish)", finish_coords))
+    
+    for name, (lat, lon) in points:
+        try:
+            url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&timezone=Europe/Paris"
+            resp = http_requests.get(url, timeout=10)
+            data = resp.json()
+            current = data.get("current", {})
+            temp = current.get("temperature_2m", "?")
+            wind = current.get("wind_speed_10m", "?")
+            wind_dir = current.get("wind_direction_10m", 0)
+            wmo = current.get("weather_code", 0)
+            desc = wmo_desc.get(wmo, f"Code {wmo}")
+            
+            # Wind direction as compass
+            dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+            compass = dirs[int((wind_dir + 22.5) / 45) % 8]
+            
+            lines.append(f"  {name:<35} {temp:>5.1f}C  Wind {wind:>5.1f}kph {compass}  {desc}")
+        except Exception as e:
+            lines.append(f"  {name:<35} Weather data unavailable")
+    
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_stage_schedule(stage: int) -> str:
+    """Scheduled times at key checkpoints for a stage (race organisation estimates)."""
+    info = aso.stage_info(stage)
+    if not info:
+        return f"No info for stage {stage}"
+    
+    dep = info.get("departureCity", {}).get("label", "?")
+    arr = info.get("arrivalCity", {}).get("label", "?")
+    length = info.get("length", 0)
+    stype = aso.stage_type(stage)
+    
+    cps = aso.get_checkpoints(stage)
+    if not cps:
+        return f"No checkpoints for stage {stage}"
+    
+    lines = [f"Stage {stage}: {dep} > {arr} ({length:.1f}km, {stype}) - Schedule"]
+    lines.append("")
+    lines.append(f"{'KM':>7}  {'Time':>8}  {'Place'}")
+    lines.append("-" * 60)
+    
+    for cp in cps:
+        km = cp.get("length", 0)
+        sched = cp.get("middleSchedule", "")
+        place = cp.get("place", "")
+        # Only show key checkpoints (start, feed zones, summits, finish)
+        types = [ct.get("code", "") for ct in cp.get("checkpointTypes", [])]
+        is_summit = bool(cp.get("checkpointSummits"))
+        is_start = "F" in types or "R" in types
+        is_feed = "N" in types
+        is_finish = "NA" in types
+        
+        if is_start or is_feed or is_summit or is_finish or km == 0 or km >= length - 1:
+            marker = ""
+            if is_feed:
+                marker = " [FEED]"
+            if is_summit:
+                s = cp.get("checkpointSummits", [{}])[0]
+                sname = s.get("summit", {}).get("name", "")
+                alt = s.get("summit", {}).get("altitude", 0)
+                marker = f" [SUMMIT: {sname} {alt:.0f}m]"
+            if is_finish:
+                marker = " [FINISH]"
+            
+            lines.append(f"{km:>7.1f}  {sched:>8}  {place}{marker}")
+    
     return "\n".join(lines)
 
 
