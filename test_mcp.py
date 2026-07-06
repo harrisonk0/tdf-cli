@@ -1,35 +1,53 @@
 #!/usr/bin/env python3
-"""Test the tdf MCP server by calling tools via stdio transport."""
+"""Tests for the tdf MCP server via stdio transport."""
 import json
 import subprocess
 import sys
-import time
 import os
+import time
+import pytest
 
-def test():
-    print("Starting tdf MCP server...")
+SERVER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tdf_mcp.py")
+
+@pytest.fixture(scope="module")
+def mcp_server():
+    """Start the MCP server subprocess and yield a send function."""
     proc = subprocess.Popen(
-        [sys.executable, '/home/ubuntu/tdf/tdf_mcp.py', '--transport', 'stdio'],
+        [sys.executable, SERVER_PATH, "--transport", "stdio"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
     )
-    
-    def send(msg):
-        """Send a JSON-RPC message and read the response."""
+
+    def send(msg, timeout=10):
+        """Send a JSON-RPC message and read the response with timeout."""
         line = json.dumps(msg) + "\n"
         proc.stdin.write(line)
         proc.stdin.flush()
-        # Read response line
-        resp = proc.stdout.readline()
-        if resp:
-            return json.loads(resp)
-        return None
-    
-    # 1. Initialize
-    print("\n1. Initialize...")
+        # Simple timeout: poll stdout
+        start = time.time()
+        while time.time() - start < timeout:
+            line = proc.stdout.readline()
+            if line:
+                try:
+                    return json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+            time.sleep(0.01)
+        pytest.fail(f"No response within {timeout}s for: {msg.get('method', msg)}")
+
+    yield send
+
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+def test_initialize(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 1,
         "method": "initialize",
@@ -39,171 +57,126 @@ def test():
             "clientInfo": {"name": "test-client", "version": "1.0"}
         }
     })
-    print(f"   Server info: {resp.get('result', {}).get('serverInfo', {})}")
-    
-    # 2. List tools
-    print("\n2. List tools...")
+    assert resp is not None, "No response to initialize"
+    assert "result" in resp, f"Initialize returned error: {resp.get('error')}"
+    server_info = resp["result"].get("serverInfo", {})
+    assert "name" in server_info, f"Missing serverInfo.name: {server_info}"
+
+def test_list_tools(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 2,
         "method": "tools/list",
         "params": {}
     })
-    tools = resp.get('result', {}).get('tools', [])
-    print(f"   {len(tools)} tools:")
-    for t in tools:
-        print(f"      {t['name']}: {t.get('description', '')[:70]}")
-    
-    # 3. List resources
-    print("\n3. List resources...")
+    assert resp is not None
+    assert "result" in resp
+    tools = resp["result"].get("tools", [])
+    assert len(tools) >= 15, f"Expected >=15 tools, got {len(tools)}"
+    tool_names = [t["name"] for t in tools]
+    assert "get_stage_result" in tool_names
+    assert "get_gc" in tool_names
+    assert "get_jerseys" in tool_names
+    assert "get_live_state" in tool_names
+
+def test_list_resources(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 3,
         "method": "resources/list",
         "params": {}
     })
-    resources = resp.get('result', {}).get('resources', [])
-    print(f"   {len(resources)} resources:")
-    for r in resources:
-        print(f"      {r.get('uri', '')}")
-    
-    # 4. Read stages resource
-    print("\n4. Read stages resource...")
+    assert resp is not None
+    assert "result" in resp
+    resources = resp["result"].get("resources", [])
+    assert len(resources) >= 1
+    uris = [r.get("uri", "") for r in resources]
+    assert "tdf://stages" in uris
+
+def test_read_stages_resource(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 4,
         "method": "resources/read",
         "params": {"uri": "tdf://stages"}
     })
-    contents = resp.get('result', {}).get('contents', [])
-    if contents:
-        text = contents[0].get('text', '')
-        print(f"   ({len(text)} chars)")
-        for line in text.split('\n')[:6]:
-            print(f"   {line}")
-    
-    # 5. Call get_stage_result
-    print("\n5. Call get_stage_result(1, top_n=5)...")
+    assert resp is not None
+    assert "result" in resp
+    contents = resp["result"].get("contents", [])
+    assert len(contents) >= 1
+    text = contents[0].get("text", "")
+    assert len(text) > 100, f"Stages resource too short: {len(text)} chars"
+    assert "Tour de France" in text
+
+def test_get_stage_result(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 5,
         "method": "tools/call",
-        "params": {
-            "name": "get_stage_result",
-            "arguments": {"stage": 1, "top_n": 5}
-        }
+        "params": {"name": "get_stage_result", "arguments": {"stage": 1, "top_n": 5}}
     })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:500]}")
-    
-    # 6. Call get_jerseys
-    print("\n6. Call get_jerseys()...")
+    assert resp is not None
+    assert "result" in resp
+    content = resp["result"].get("content", [])
+    assert len(content) >= 1
+    text = content[0].get("text", "")
+    # Either returns stage data or "hasn't happened yet" - both are valid responses
+    assert "Stage" in text, f"Unexpected response: {text[:200]}"
+
+def test_get_jerseys(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 6,
         "method": "tools/call",
-        "params": {
-            "name": "get_jerseys",
-            "arguments": {}
-        }
+        "params": {"name": "get_jerseys", "arguments": {}}
     })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:400]}")
-    
-    # 7. Call get_gc
-    print("\n7. Call get_gc(stage=1, top_n=5)...")
+    assert resp is not None
+    assert "result" in resp
+    content = resp["result"].get("content", [])
+    assert len(content) >= 1
+    # Either returns jersey data or "No jersey data" - both valid
+    text = content[0].get("text", "")
+    assert len(text) > 0
+
+def test_get_gc(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 7,
         "method": "tools/call",
-        "params": {
-            "name": "get_gc",
-            "arguments": {"stage": 1, "top_n": 5}
-        }
+        "params": {"name": "get_gc", "arguments": {"stage": 1, "top_n": 5}}
     })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:500]}")
-    
-    # 8. Call get_stage_profile
-    print("\n8. Call get_stage_profile(stage=6)...")
+    assert resp is not None
+    assert "result" in resp
+    content = resp["result"].get("content", [])
+    assert len(content) >= 1
+    text = content[0].get("text", "")
+    assert "Classification" in text or "No GC" in text
+
+def test_invalid_stage(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 8,
         "method": "tools/call",
-        "params": {
-            "name": "get_stage_profile",
-            "arguments": {"stage": 6}
-        }
+        "params": {"name": "get_stage_result", "arguments": {"stage": 99}}
     })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:400]}")
-    
-    # 9. Call get_bluesky_feed
-    print("\n9. Call get_bluesky_feed(query='Vauquelin', limit=3)...")
+    assert resp is not None
+    assert "result" in resp
+    content = resp["result"].get("content", [])
+    assert len(content) >= 1
+    text = content[0].get("text", "")
+    assert "Stage 99" in text
+
+def test_search_riders(mcp_server):
+    send = mcp_server
     resp = send({
         "jsonrpc": "2.0", "id": 9,
         "method": "tools/call",
-        "params": {
-            "name": "get_bluesky_feed",
-            "arguments": {"query": "Vauquelin", "limit": 3}
-        }
+        "params": {"name": "search_riders", "arguments": {"query": "Pogacar"}}
     })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:400]}")
-    
-    # 10. Call get_ttt_splits
-    print("\n10. Call get_ttt_splits(stage=1)...")
-    resp = send({
-        "jsonrpc": "2.0", "id": 10,
-        "method": "tools/call",
-        "params": {
-            "name": "get_ttt_splits",
-            "arguments": {"stage": 1}
-        }
-    })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            text = c.get('text', '')
-            print(f"   ({len(text)} chars)")
-            for line in text.split('\n')[:12]:
-                print(f"   {line}")
-    
-    # 11. Call search_riders
-    print("\n11. Call search_riders(query='Pidcock')...")
-    resp = send({
-        "jsonrpc": "2.0", "id": 11,
-        "method": "tools/call",
-        "params": {
-            "name": "search_riders",
-            "arguments": {"query": "Pidcock"}
-        }
-    })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:200]}")
-    
-    # 12. Test error handling - invalid stage
-    print("\n12. Call get_stage_result(stage=99)...")
-    resp = send({
-        "jsonrpc": "2.0", "id": 12,
-        "method": "tools/call",
-        "params": {
-            "name": "get_stage_result",
-            "arguments": {"stage": 99}
-        }
-    })
-    content = resp.get('result', {}).get('content', [])
-    if content:
-        for c in content:
-            print(f"   {c.get('text', '')[:200]}")
-    
-    proc.terminate()
-    print("\n✅ All tests passed!")
-
-if __name__ == "__main__":
-    test()
+    assert resp is not None
+    assert "result" in resp
+    content = resp["result"].get("content", [])
+    assert len(content) >= 1
+    text = content[0].get("text", "")
+    # Either finds Pogacar or not - both are valid. Just check it returns something
+    assert len(text) > 0
