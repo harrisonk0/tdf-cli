@@ -25,7 +25,7 @@ mcp = FastMCP(
 Sources: ASO official API (results, live GPS), PCS (individual TTT splits via curl_cffi),
 Bluesky public API (race narrative), RSS feeds (news).
 
-Times in CET/CEST.""",
+Times in CET/CEST (ASO timing system operates in Central European Time for TDF).""",
     debug=False,
 )
 
