@@ -825,31 +825,34 @@ def cmd_checkpoints(aso, stage):
               f"{truncate(place,20):<20}  {sched:<12}  {climb}")
 
 
-def cmd_profile(aso, stage):
+def format_stage_profile(aso, stage):
+    """Format stage climb profile."""
     info = aso.stage_info(stage)
     dep = info.get("departureCity", {}).get("label", "?")
     arr = info.get("arrivalCity", {}).get("label", "?")
     length = info.get("length", 0)
-    print(f"Stage {stage}: {dep} > {arr} ({length:.1f}km) - Profile\n")
 
     profile = aso.get_stage_profile(stage)
     if not profile:
-        print("  No profile data for this stage")
-        return
+        return f"Stage {stage}: {dep} > {arr} ({length:.1f}km) - Profile\n\n  No profile data for this stage"
 
+    lines = [f"Stage {stage}: {dep} > {arr} ({length:.1f}km) - Profile\n"]
     cat_map = {"H": "HC", "1": "Cat 1", "2": "Cat 2", "3": "Cat 3", "4": "Cat 4", "X": "Climb"}
     n_climbs = 0
     for entry in profile:
         if entry["type"] == "climb":
             cat = cat_map.get(entry.get("code", ""), "Climb")
-            print(f"  {cat:<6} at km {entry['km']:<6.1f}  {entry['name']:<40}  "
-                  f"{entry['altitude']:>4.0f}m  length: {entry['length']:.0f}m")
+            lines.append(f"  {cat:<6} at km {entry['km']:<6.1f}  {entry['name']:<40}  {entry['altitude']:>4.0f}m  length: {entry['length']:.0f}m")
             n_climbs += 1
         elif entry["type"] == "chrono":
-            print(f"  {'CHRONO':<6} at km {entry['km']:<6.1f}  {entry['name']}")
-
+            lines.append(f"  {'CHRONO':<6} at km {entry['km']:<6.1f}  {entry['name']}")
     if n_climbs == 0:
-        print("  No categorised climbs on this stage")
+        lines.append("  No categorised climbs on this stage")
+    return "\n".join(lines)
+
+
+def cmd_profile(aso, stage):
+    print(format_stage_profile(aso, stage))
 
 
 def cmd_speed(aso, stage):

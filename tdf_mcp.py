@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -237,28 +237,7 @@ def get_news(limit: int = 10) -> str:
 @mcp.tool()
 def get_stage_profile(stage: int) -> str:
     """Climb profile: categories, altitude, length, intermediate sprints."""
-    info = aso.stage_info(stage)
-    dep = info.get("departureCity", {}).get("label", "?")
-    arr = info.get("arrivalCity", {}).get("label", "?")
-    length = info.get("length", 0)
-    lines = [f"Stage {stage}: {dep} > {arr} ({length:.1f}km) - Profile"]
-
-    profile = aso.get_stage_profile(stage)
-    if not profile:
-        return f"No profile data for stage {stage}"
-
-    cat_map = {"H": "HC", "1": "Cat 1", "2": "Cat 2", "3": "Cat 3", "4": "Cat 4", "X": "Climb"}
-    for entry in profile:
-        if entry["type"] == "climb":
-            cat = cat_map.get(entry.get("code", ""), "Climb")
-            lines.append(f"  {cat:<6} at km {entry['km']:<6.1f}  {entry['name']:<40}  {entry['altitude']:>4.0f}m  length: {entry['length']:.0f}m")
-        elif entry["type"] == "chrono":
-            lines.append(f"  {'CHRONO':<6} at km {entry['km']:<6.1f}  {entry['name']}")
-    if profile:
-        n_climbs = sum(1 for e in profile if e["type"] == "climb")
-        if n_climbs == 0:
-            lines.append("  No categorised climbs")
-    return "\n".join(lines)
+    return format_stage_profile(aso, stage)
 
 
 @mcp.tool()
