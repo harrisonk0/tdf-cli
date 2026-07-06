@@ -117,6 +117,18 @@ class AsoSource:
 
     def find_latest_stage(self):
         stages = self.load_stages()
+        if not stages:
+            return 1
+        # Use stage dates to find the most recent stage on or before today
+        today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
+        latest = None
+        for s in stages:
+            sdate = s.get("date", "")[:10]
+            if sdate and sdate <= today:
+                latest = s.get("stage", 1)
+        if latest:
+            return latest
+        # Fallback: probe rankings endpoints (original behavior)
         for s in reversed(stages):
             snum = s.get("stage")
             if snum and self.get_finish_rankings(snum):
