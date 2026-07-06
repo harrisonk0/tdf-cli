@@ -18,8 +18,6 @@ aso = AsoSource()
 pcs = PcsSource()
 bsky = BlueskySource()
 rss = RssSource()
-aso.load_riders_teams()
-
 mcp = FastMCP(
     "tdf-cli",
     instructions="""Tour de France 2026 data for AI agents.
