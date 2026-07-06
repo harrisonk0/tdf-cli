@@ -120,7 +120,7 @@ def get_jerseys() -> str:
     lines.append("")
     for i in range(4):
         if i < len(ygpw) and ygpw[i]:
-            r = aso._riders.get(ygpw[i])
+            r = aso.get_rider(ygpw[i])
             if r:
                 lines.append(f"{jersey_icons[i]} {jersey_names[i]:<18} {r['firstname']} {r['lastname']}  ({r['team_name']}, bib {r['bib']})")
     return "\n".join(lines)
@@ -168,7 +168,7 @@ def get_live_state() -> str:
     jersey_parts = []
     for i in range(4):
         if i < len(ygpw) and ygpw[i]:
-            r = aso._riders.get(ygpw[i])
+            r = aso.get_rider(ygpw[i])
             if r:
                 jersey_parts.append(f"{jersey_icons[i]}{jersey_names[i][0]}={r['firstname']} {r['lastname']}")
     if jersey_parts:
@@ -198,7 +198,7 @@ def get_live_state() -> str:
             avg_kph = sum(kphs) / len(kphs) if kphs else 0
             names = []
             for r in grp["riders"]:
-                rider = aso._riders.get(r.get("Bib"))
+                rider = aso.get_rider(r.get("Bib"))
                 names.append(f"{rider['firstname']} {rider['lastname']}" if rider else f"#{r.get('Bib')}")
             names_str = ", ".join(names[:5])
             if len(names) > 5:
@@ -247,7 +247,7 @@ def get_rider_positions(rider_names: list[str]) -> str:
     for name in rider_names:
         q = name.lower().replace(" ", "")
         found_any = False
-        for bib, info in aso._riders.items():
+        for bib, info in aso.get_all_riders().items():
             full = f"{info['firstname']}{info['lastname']}".lower().replace(" ", "")
             if q in full:
                 matches.append((bib, info))
@@ -257,7 +257,7 @@ def get_rider_positions(rider_names: list[str]) -> str:
 
     tel_by_bib = {r.get("Bib"): r for r in riders}
     lines = [f"Tour de France {YEAR} - Rider Positions"]
-    lines.append(f"Leader: {aso._riders.get(sorted_riders[0].get('Bib'), {}).get('lastname', '?')} at {leader_km:.2f}km")
+    lines.append(f"Leader: {aso.get_rider(sorted_riders[0].get('Bib'), {}).get('lastname', '?')} at {leader_km:.2f}km")
     lines.append("")
     lines.append(f"{'Bib':>4}  {'Name':<26} {'Team':<22} {'kmToFin':>8} {'Gap':>6} {'Speed':>6} {'Grad%':>5} {'Status':>8}")
     lines.append("-" * 90)
@@ -417,7 +417,7 @@ def get_checkpoints(stage: int) -> str:
 def search_riders(query: str) -> str:
     """Find a rider by name, returns bib, team, nationality."""
     query_lower = query.lower()
-    riders_list = list(aso._riders.values()) if aso._riders else []
+    riders_list = list(aso.get_all_riders().values())
     matches = [r for r in riders_list
                if query_lower in r["firstname"].lower() or query_lower in r["lastname"].lower()]
 
@@ -465,7 +465,7 @@ def get_stage_checkpoint_splits(stage: int, top_n: int = 10) -> str:
 
     hdr = f"{'CP':>4}  {'KM':>6}"
     for r in finish_cp["rankings"][:top_n]:
-        rider = aso._riders.get(r["bib"], {})
+        rider = aso.get_rider(r["bib"], {})
         ln = rider.get("lastname", f"#{r['bib']}")
         hdr += f" {truncate(ln,14):>14}"
     lines.append(hdr)

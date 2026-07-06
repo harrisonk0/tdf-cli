@@ -103,6 +103,18 @@ class AsoSource:
         r = self._riders.get(bib)
         return r["team_name"] if r else ""
 
+    def get_rider(self, bib):
+        """Get rider info dict by bib, or None if not found."""
+        if self._riders is None:
+            self.load_riders_teams()
+        return self._riders.get(bib)
+
+    def get_all_riders(self):
+        """Get all riders dict (keyed by bib)."""
+        if self._riders is None:
+            self.load_riders_teams()
+        return self._riders or {}
+
     def find_latest_stage(self):
         stages = self.load_stages()
         for s in reversed(stages):
