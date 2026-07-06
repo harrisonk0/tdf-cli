@@ -15,7 +15,7 @@ from pathlib import Path
 import requests
 
 ASO_BASE = "https://racecenter.letour.fr/api"
-YEAR = 2026
+YEAR = 2026  # Update annually
 CACHE_DIR = Path.home() / ".tdf_cache"
 CACHE_TTL = 3600
 
