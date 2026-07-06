@@ -206,6 +206,28 @@ class AsoSource:
         return results
 
 
+    def clean_telemetry(self, tel):
+        """Deduplicate riders by bib and filter stale GPS positions."""
+        raw_riders = tel.get("Riders", [])
+        seen_bibs = set()
+        riders = []
+        for r in raw_riders:
+            bib = r.get("Bib")
+            if bib and bib not in seen_bibs:
+                seen_bibs.add(bib)
+                riders.append(r)
+        # Filter out impossible GPS positions against today's stage length
+        stage_length = None
+        today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
+        for s in self.load_stages():
+            if s.get("date", "")[:10] == today:
+                stage_length = s.get("length", 0)
+                break
+        if stage_length is not None and stage_length > 0:
+            riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
+        return riders
+
+
 class PcsSource:
     def __init__(self):
         self._session = None
@@ -521,28 +543,7 @@ def cmd_live(aso, watch=False, interval=15):
 
         race_status = tel.get("RaceStatus", False)
         ygpw = tel.get("YGPW", [])
-        raw_riders = tel.get("Riders", [])
-
-        # --- Data clean-up: ASO API often returns duplicate entries + stale GPS ---
-
-        # 1. Deduplicate by bib
-        seen_bibs = set()
-        riders = []
-        for r in raw_riders:
-            bib = r.get("Bib")
-            if bib and bib not in seen_bibs:
-                seen_bibs.add(bib)
-                riders.append(r)
-
-        # 2. Filter out impossible GPS positions against today's stage length
-        stage_length = None
-        today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
-        for s in aso.load_stages():
-            if s.get("date", "")[:10] == today:
-                stage_length = s.get("length", 0)
-                break
-        if stage_length is not None and stage_length > 0:
-            riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
+        riders = aso.clean_telemetry(tel)
 
         jersey_names = ["Yellow", "Green", "Polka", "White"]
         jersey_icons = ["🟡", "🟢", "🔴", "⚪"]
@@ -619,23 +620,7 @@ def cmd_where(aso, names):
         print("No live data - race probably not in progress")
         return
 
-    raw_riders = tel.get("Riders", [])
-    # Dedup + filter
-    seen_bibs = set()
-    riders = []
-    for r in raw_riders:
-        bib = r.get("Bib")
-        if bib and bib not in seen_bibs:
-            seen_bibs.add(bib)
-            riders.append(r)
-    stage_length = None
-    today = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d")
-    for s in aso.load_stages():
-        if s.get("date", "")[:10] == today:
-            stage_length = s.get("length", 0)
-            break
-    if stage_length is not None and stage_length > 0:
-        riders = [r for r in riders if 0 <= r.get("kmToFinish", 0) <= stage_length + 2.0]
+    riders = aso.clean_telemetry(tel)
 
     sorted_riders = sorted(riders, key=lambda r: r.get("kmToFinish", 999))
     leader_km = sorted_riders[0].get("kmToFinish", 0) if sorted_riders else 0
