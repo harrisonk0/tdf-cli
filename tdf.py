@@ -263,6 +263,8 @@ class PcsSource:
             if riders and team_name and 2 <= len(riders) <= 10:
                 teams.append({"team": team_name, "riders": riders})
 
+        if not teams and html and "<table" in html:
+            print("PCS TTT parsing: HTML contains tables but no teams matched - structure may have changed", file=sys.stderr)
         return teams
 
     def get_speed_segments(self, stage):
@@ -295,6 +297,8 @@ class PcsSource:
                         })
                     except (ValueError, IndexError):
                         pass
+        if not segments and "<table" in html:
+            print("PCS speed segments parsing: HTML contains tables but no segments matched - structure may have changed", file=sys.stderr)
         return segments if segments else None
 
 
