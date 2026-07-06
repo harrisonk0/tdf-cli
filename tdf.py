@@ -212,7 +212,7 @@ class PcsSource:
         url = f"https://www.procyclingstats.com/race/tour-de-france/{YEAR}/stage-{stage}/result"
         try:
             r = session.get(url, impersonate="chrome120", timeout=20)
-            if r.status_code == 200 and ("<table" in r.text or "Vauquelin" in r.text):
+            if r.status_code == 200 and "<table" in r.text:
                 CACHE_DIR.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(r.text)
                 return r.text
