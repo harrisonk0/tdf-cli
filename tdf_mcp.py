@@ -149,7 +149,6 @@ def get_live_state() -> str:
 
     # 2. Filter out impossible GPS positions: find today's stage length, drop
     #    entries whose kmToFinish exceeds it (stale pre-start positions).
-    from datetime import datetime
     stage_length = None
     today = datetime.now().strftime("%Y-%m-%d")
     for s in aso.load_stages():
@@ -212,7 +211,6 @@ def get_live_state() -> str:
 @mcp.tool()
 def get_rider_positions(rider_names: list[str]) -> str:
     """Live GPS positions for specific riders by name. Pass one or more names (e.g. ['Pogacar', 'Vingegaard'])."""
-    global aso
     aso.load_riders_teams()
     tel = aso.get_telemetry()
     if not tel:
@@ -228,7 +226,6 @@ def get_rider_positions(rider_names: list[str]) -> str:
             seen_bibs.add(bib)
             riders.append(r)
     # Filter bad GPS
-    from datetime import datetime
     today = datetime.now().strftime("%Y-%m-%d")
     stage_length = None
     for s in aso.load_stages():
@@ -450,7 +447,6 @@ def get_teams() -> str:
 @mcp.tool()
 def get_stage_checkpoint_splits(stage: int, top_n: int = 10) -> str:
     """How time gaps evolved across the stage - splits at each checkpoint."""
-    from tdf import fmt_time, fmt_gap
 
     info = aso.stage_info(stage)
     dep = info.get("departureCity", {}).get("label", "?")
