@@ -537,16 +537,14 @@ def cmd_live(aso, watch=False, interval=15):
         sorted_riders = sorted(riders, key=lambda r: r.get("kmToFinish", 999))
         groups = []
         if sorted_riders:
-            cur = {"km": sorted_riders[0].get("kmToFinish", 0), "riders": [sorted_riders[0]], "min_kph": 999, "max_kph": 0}
+            cur = {"km": sorted_riders[0].get("kmToFinish", 0), "riders": [sorted_riders[0]]}
             for r in sorted_riders[1:]:
                 if abs(r.get("kmToFinish", 0) - cur["km"]) < 0.15:
                     cur["riders"].append(r)
                 else:
                     groups.append(cur)
-                    cur = {"km": r.get("kmToFinish", 0), "riders": [r], "min_kph": 999, "max_kph": 0}
-                kph = r.get("kph", 0)
-                if kph < cur["min_kph"]: cur["min_kph"] = kph
-                if kph > cur["max_kph"]: cur["max_kph"] = kph
+                    cur = {"km": r.get("kmToFinish", 0), "riders": [r]}
+
             groups.append(cur)
 
         print(f"\nGroups ({len(groups)} groups, {len(riders)} riders):")
