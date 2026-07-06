@@ -432,6 +432,24 @@ def parse_iso_time(ts):
         return None
 
 
+def format_rankings_table(aso, rankings, top_n=0):
+    """Format a rankings table (stage result or GC) as a string."""
+    lines = []
+    lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
+    lines.append("-" * 95)
+    limit = min(top_n, len(rankings)) if top_n else len(rankings)
+    for r in rankings[:limit]:
+        bib = r["bib"]
+        name = aso.rider_name(bib)
+        team = aso.rider_team(bib)
+        time_str = fmt_time(r["absolute"])
+        gap_str = fmt_gap(r["relative"])
+        lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {time_str:>14} {gap_str:>10}")
+    if top_n and top_n < len(rankings):
+        lines.append(f"... ({len(rankings) - top_n} more)")
+    return "\n".join(lines)
+
+
 def cmd_stage_result(aso, stage, top_n=0, show_cp=False, show_splits=False):
     aso.load_riders_teams()
     finish = aso.get_finish_rankings(stage)
@@ -445,21 +463,7 @@ def cmd_stage_result(aso, stage, top_n=0, show_cp=False, show_splits=False):
     length = info.get("length", 0)
     stype = aso.stage_type(stage)
     print(f"\nStage {stage}: {dep} > {arr} ({length:.1f}km, {stype})")
-    print(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
-    print("-" * 95)
-
-    rankings = finish.get("rankings", [])
-    limit = min(top_n, len(rankings)) if top_n else len(rankings)
-    for r in rankings[:limit]:
-        bib = r["bib"]
-        name = aso.rider_name(bib)
-        team = aso.rider_team(bib)
-        time_str = fmt_time(r["absolute"])
-        gap_str = fmt_gap(r["relative"])
-        print(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {time_str:>14} {gap_str:>10}")
-
-    if top_n and top_n < len(rankings):
-        print(f"... ({len(rankings) - top_n} more)")
+    print(format_rankings_table(aso, finish.get("rankings", []), top_n))
 
     if show_cp:
         cps = aso.get_rankings(stage)
@@ -516,17 +520,7 @@ def cmd_gc(aso, stage, top_n=0):
         print(f"No GC data for stage {stage}")
         return
     print(f"\nGeneral Classification after Stage {stage}")
-    print(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
-    print("-" * 95)
-    rankings = finish.get("rankings", [])
-    limit = min(top_n, len(rankings)) if top_n else len(rankings)
-    for r in rankings[:limit]:
-        bib = r["bib"]
-        name = aso.rider_name(bib)
-        team = aso.rider_team(bib)
-        time_str = fmt_time(r["absolute"])
-        gap_str = fmt_gap(r["relative"])
-        print(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {time_str:>14} {gap_str:>10}")
+    print(format_rankings_table(aso, finish.get("rankings", []), top_n))
 
 
 def cmd_live(aso, watch=False, interval=15):

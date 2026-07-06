@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -64,18 +64,7 @@ def get_stage_result(stage: int, top_n: int = 0) -> str:
     stype = aso.stage_type(stage)
 
     lines = [f"Stage {stage}: {dep} > {arr} ({length:.1f}km, {stype})"]
-    lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
-    lines.append("-" * 95)
-
-    rankings = finish.get("rankings", [])
-    limit = min(top_n, len(rankings)) if top_n else len(rankings)
-    for r in rankings[:limit]:
-        bib = r["bib"]
-        name = aso.rider_name(bib)
-        team = aso.rider_team(bib)
-        time_str = fmt_time(r["absolute"])
-        gap_str = fmt_gap(r["relative"])
-        lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {time_str:>14} {gap_str:>10}")
+    lines.append(format_rankings_table(aso, finish.get("rankings", []), top_n))
     return "\n".join(lines)
 
 
@@ -89,18 +78,7 @@ def get_gc(stage: int = -1, top_n: int = 10) -> str:
         return f"No GC data for stage {stage}"
 
     lines = [f"General Classification after Stage {stage}"]
-    lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Time':>14} {'Gap':>10}")
-    lines.append("-" * 95)
-
-    rankings = finish.get("rankings", [])
-    limit = min(top_n, len(rankings)) if top_n else len(rankings)
-    for r in rankings[:limit]:
-        bib = r["bib"]
-        name = aso.rider_name(bib)
-        team = aso.rider_team(bib)
-        time_str = fmt_time(r["absolute"])
-        gap_str = fmt_gap(r["relative"])
-        lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {time_str:>14} {gap_str:>10}")
+    lines.append(format_rankings_table(aso, finish.get("rankings", []), top_n))
     return "\n".join(lines)
 
 
