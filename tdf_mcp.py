@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile, format_checkpoints
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys, format_stages, format_teams, format_stage_profile, format_checkpoints, format_speed_segments
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -262,19 +262,7 @@ def get_ttt_splits(stage: int) -> str:
 @mcp.tool()
 def get_speed_segments(stage: int) -> str:
     """Average speed per segment from PCS - shows how pace changes across the route."""
-    segments = pcs.get_speed_segments(stage)
-    if not segments:
-        return f"No speed data for stage {stage}"
-
-    info = aso.stage_info(stage)
-    dep = info.get("departureCity", {}).get("label", "?")
-    arr = info.get("arrivalCity", {}).get("label", "?")
-    lines = [f"Stage {stage}: {dep} > {arr} - Speed per Segment", ""]
-    lines.append(f"{'Segment (km)':>15}  {'Riders':>7}  {'Avg Speed'}")
-    lines.append("-" * 40)
-    for seg in segments:
-        lines.append(f"{seg['segment']:>15}  {seg['riders']:>7}  {seg['speed']:>9.1f} kph")
-    return "\n".join(lines)
+    return format_speed_segments(aso, stage)
 
 
 @mcp.tool()

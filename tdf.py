@@ -858,20 +858,25 @@ def cmd_profile(aso, stage):
     print(format_stage_profile(aso, stage))
 
 
-def cmd_speed(aso, stage):
+def format_speed_segments(aso, stage):
+    """Format average speed per segment from PCS."""
     pcs = PcsSource()
     segments = pcs.get_speed_segments(stage)
     if not segments:
-        print(f"No speed data for stage {stage}")
-        return
+        return f"No speed data for stage {stage}"
     info = aso.stage_info(stage)
     dep = info.get("departureCity", {}).get("label", "?")
     arr = info.get("arrivalCity", {}).get("label", "?")
-    print(f"Stage {stage}: {dep} > {arr} - Speed per Segment\n")
-    print(f"{'Segment (km)':>15}  {'Riders':>7}  {'Avg Speed':>10}")
-    print("-" * 40)
+    lines = [f"Stage {stage}: {dep} > {arr} - Speed per Segment", ""]
+    lines.append(f"{'Segment (km)':>15}  {'Riders':>7}  {'Avg Speed'}")
+    lines.append("-" * 40)
     for seg in segments:
-        print(f"{seg['segment']:>15}  {seg['riders']:>7}  {seg['speed']:>9.1f} kph")
+        lines.append(f"{seg['segment']:>15}  {seg['riders']:>7}  {seg['speed']:>9.1f} kph")
+    return "\n".join(lines)
+
+
+def cmd_speed(aso, stage):
+    print(format_speed_segments(aso, stage))
 
 
 def main():
