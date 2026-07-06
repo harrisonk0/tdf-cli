@@ -632,8 +632,10 @@ def cmd_where(aso, names):
             if name_lower in full:
                 matches.append((bib, info, name))
                 found = True
+        if not found:
+            print(f"  '{name}' not found")
     if not matches:
-        print("No riders matched the given name(s). Try 'Pogacar' or 'Vingegaard'.")
+        print("No riders matched. Try 'Pogacar' or 'Vingegaard'.")
         return
 
     # Map bib to telemetry
