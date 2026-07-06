@@ -658,32 +658,36 @@ def cmd_where(aso, names):
               f"at {leader_km:.2f}km to finish")
 
 
-def cmd_jerseys(aso, stage=0):
-    aso.load_riders_teams()
-    tel = aso.get_telemetry()
-    if not tel:
-        print("No jersey data available")
-        return
-
+def format_jerseys(aso, tel, stage=0):
+    """Format current jersey holders from telemetry."""
     ygpw = tel.get("YGPW", [])
     jersey_names = ["YELLOW (GC)", "GREEN (Points)", "POLKA DOT (KOM)", "WHITE (U25)"]
     jersey_icons = ["🟡", "🟢", "🔴", "⚪"]
 
-    print(f"Tour de France {YEAR} - Jerseys")
+    lines = [f"Tour de France {YEAR} - Jerseys"]
     if stage > 0:
-        print(f"(after Stage {stage})")
-    print("(live telemetry - shows current leader mid-race, not final GC)")
-    print()
+        lines.append(f"(after Stage {stage})")
+    lines.append("(live telemetry - shows current leader mid-race, not final GC)")
+    lines.append("")
 
     for i in range(4):
         if i < len(ygpw) and ygpw[i]:
             bib = ygpw[i]
             r = aso.get_rider(bib)
             if r:
-                print(f"{jersey_icons[i]} {jersey_names[i]:<18} {r['firstname']} {r['lastname']}  "
-                      f"({r['team_name']}, bib {bib})")
+                lines.append(f"{jersey_icons[i]} {jersey_names[i]:<18} {r['firstname']} {r['lastname']}  ({r['team_name']}, bib {bib})")
             else:
-                print(f"{jersey_icons[i]} {jersey_names[i]:<18} Bib #{bib}")
+                lines.append(f"{jersey_icons[i]} {jersey_names[i]:<18} Bib #{bib}")
+    return "\n".join(lines)
+
+
+def cmd_jerseys(aso, stage=0):
+    aso.load_riders_teams()
+    tel = aso.get_telemetry()
+    if not tel:
+        print("No jersey data available")
+        return
+    print(format_jerseys(aso, tel, stage))
 
 
 def cmd_bsky(aso, query="Tour de France", watch=False, interval=30, tag=None):

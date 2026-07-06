@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table
+from tdf import AsoSource, PcsSource, BlueskySource, RssSource, fmt_time, fmt_gap, truncate, YEAR, format_rankings_table, format_jerseys
 
 from mcp.server.fastmcp import FastMCP
 import requests as http_requests
@@ -88,20 +88,7 @@ def get_jerseys() -> str:
     tel = aso.get_telemetry()
     if not tel:
         return "No jersey data right now (ASO telemetry unavailable)"
-
-    ygpw = tel.get("YGPW", [])
-    jersey_names = ["YELLOW (GC)", "GREEN (Points)", "POLKA DOT (KOM)", "WHITE (U25)"]
-    jersey_icons = ["🟡", "🟢", "🔴", "⚪"]
-
-    lines = [f"Tour de France {YEAR} - Jerseys"]
-    lines.append("(live telemetry - mid-race leaders, not final GC)")
-    lines.append("")
-    for i in range(4):
-        if i < len(ygpw) and ygpw[i]:
-            r = aso.get_rider(ygpw[i])
-            if r:
-                lines.append(f"{jersey_icons[i]} {jersey_names[i]:<18} {r['firstname']} {r['lastname']}  ({r['team_name']}, bib {r['bib']})")
-    return "\n".join(lines)
+    return format_jerseys(aso, tel)
 
 
 @mcp.tool()
