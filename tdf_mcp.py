@@ -423,7 +423,7 @@ def get_route_weather(stage: int) -> str:
         points.append((f"{name} ({alt:.0f}m)", coords))
     points.append((f"{arr} (Finish)", finish_coords))
     
-    for name, (lat, lon) in points:
+    def _fetch_weather(name, lat, lon):
         try:
             url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&timezone=Europe/Paris"
             resp = http_requests.get(url, timeout=10)
@@ -434,14 +434,16 @@ def get_route_weather(stage: int) -> str:
             wind_dir = current.get("wind_direction_10m", 0)
             wmo = current.get("weather_code", 0)
             desc = wmo_desc.get(wmo, f"Code {wmo}")
-            
-            # Wind direction as compass
             dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
             compass = dirs[int((wind_dir + 22.5) / 45) % 8]
-            
-            lines.append(f"  {name:<35} {temp:>5.1f}C  Wind {wind:>5.1f}kph {compass}  {desc}")
-        except Exception as e:
-            lines.append(f"  {name:<35} Weather data unavailable")
+            return f"  {name:<35} {temp:>5.1f}C  Wind {wind:>5.1f}kph {compass}  {desc}"
+        except Exception:
+            return f"  {name:<35} Weather data unavailable"
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(lambda p: _fetch_weather(p[0], p[1][0], p[1][1]), points))
+    lines.extend(results)
     
     return "\n".join(lines)
 
