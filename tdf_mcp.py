@@ -492,6 +492,114 @@ def get_stage_checkpoint_splits(stage: int, top_n: int = 10) -> str:
     return "\n".join(lines)
 
 
+@mcp.tool()
+def get_intermediate_sprints(stage: int) -> str:
+    """Intermediate sprint results for a stage. Returns top finishers at each sprint point."""
+    data = aso.get_rankings(stage, "rankingType")
+    if not data:
+        return f"No intermediate sprint data for stage {stage}"
+
+    # Find intermediate sprint entries (type "ipe")
+    sprints = [c for c in data if c.get("type") == "ipe"]
+    if not sprints:
+        # Try alternative: check for "im" type (some stages use this)
+        sprints = [c for c in data if c.get("type", "").startswith("im")]
+    if not sprints:
+        return f"No intermediate sprints recorded for stage {stage}"
+
+    info = aso.stage_info(stage)
+    dep = info.get("departureCity", {}).get("label", "?")
+    arr = info.get("arrivalCity", {}).get("label", "?")
+
+    lines = [f"Stage {stage}: {dep} > {arr} - Intermediate Sprints"]
+
+    for sprint in sprints:
+        km = sprint.get("length", 0)
+        cp = sprint.get("checkpoint", "?")
+        rankings = sprint.get("rankings", [])
+        if not rankings:
+            continue
+        lines.append(f"\nSprint at km {km:.1f} (CP {cp}):")
+        lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Bonus':>5}")
+        lines.append("-" * 75)
+        for r in rankings[:10]:
+            bib = r["bib"]
+            name = aso.rider_name(bib)
+            team = aso.rider_team(bib)
+            bonus = r.get("bonus", 0)
+            lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {bonus:>5}")
+
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_kom_standings(stage: int = -1, top_n: int = 10) -> str:
+    """Polka dot jersey / KOM standings. stage=-1 for latest."""
+    if stage < 1:
+        stage = aso.find_latest_stage()
+    data = aso.get_rankings(stage, "rankingType")
+    if not data:
+        return f"No KOM data for stage {stage}"
+
+    # Mountains general classification (type "img")
+    kom = [c for c in data if c.get("type") == "img"]
+    if not kom:
+        return f"No KOM standings available for stage {stage}"
+
+    kom = kom[0]
+    rankings = kom.get("rankings", [])
+    if not rankings:
+        return f"No KOM rankings yet for stage {stage}"
+
+    lines = [f"🔴 Polka Dot Jersey (KOM) Standings after Stage {stage}"]
+    lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Points':>6}")
+    lines.append("-" * 75)
+
+    limit = min(top_n, len(rankings))
+    for r in rankings[:limit]:
+        bib = r["bib"]
+        name = aso.rider_name(bib)
+        team = aso.rider_team(bib)
+        points = r.get("absolute", 0)
+        lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {points:>6}")
+
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_points_standings(stage: int = -1, top_n: int = 10) -> str:
+    """Green jersey / points classification standings. stage=-1 for latest."""
+    if stage < 1:
+        stage = aso.find_latest_stage()
+    data = aso.get_rankings(stage, "rankingType")
+    if not data:
+        return f"No points data for stage {stage}"
+
+    # Points general classification (type "ipg")
+    pts = [c for c in data if c.get("type") == "ipg"]
+    if not pts:
+        return f"No points standings available for stage {stage}"
+
+    pts = pts[0]
+    rankings = pts.get("rankings", [])
+    if not rankings:
+        return f"No points rankings yet for stage {stage}"
+
+    lines = [f"🟢 Green Jersey (Points) Standings after Stage {stage}"]
+    lines.append(f"{'Pos':>4}  {'Bib':>4}  {'Name':<26} {'Team':<30} {'Points':>6}")
+    lines.append("-" * 75)
+
+    limit = min(top_n, len(rankings))
+    for r in rankings[:limit]:
+        bib = r["bib"]
+        name = aso.rider_name(bib)
+        team = aso.rider_team(bib)
+        points = r.get("absolute", 0)
+        lines.append(f"{r['position']:>4}  {bib:>4}  {truncate(name,26):<26} {truncate(team,30):<30} {points:>6}")
+
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description="TDF MCP server")
     parser.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
