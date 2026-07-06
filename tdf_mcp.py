@@ -109,7 +109,7 @@ def get_jerseys() -> str:
     """Current jersey holders: Yellow, Green, Polka Dot, White."""
     tel = aso.get_telemetry()
     if not tel:
-        return "No jersey data right now"
+        return "No jersey data right now (ASO telemetry unavailable)"
 
     ygpw = tel.get("YGPW", [])
     jersey_names = ["YELLOW (GC)", "GREEN (Points)", "POLKA DOT (KOM)", "WHITE (U25)"]
@@ -131,7 +131,7 @@ def get_live_state() -> str:
     """Live race state: GPS, groups, speeds, weather."""
     tel = aso.get_telemetry()
     if not tel:
-        return "No live data - race probably not in progress"
+        return "No live data - race probably not in progress (ASO API returned empty)"
 
     race_status = tel.get("RaceStatus", False)
     ygpw = tel.get("YGPW", [])
@@ -215,7 +215,7 @@ def get_rider_positions(rider_names: list[str]) -> str:
     aso.load_riders_teams()
     tel = aso.get_telemetry()
     if not tel:
-        return "No live data - race probably not in progress"
+        return "No live data - race probably not in progress (ASO API returned empty)"
 
     raw_riders = tel.get("Riders", [])
     # Dedup by bib
@@ -352,8 +352,9 @@ def get_ttt_splits(stage: int) -> str:
     """Individual per-rider splits for TTT/ITT stages (from PCS)."""
     splits = pcs.get_ttt_splits(stage)
     if not splits:
-        return f"Individual splits not available for stage {stage}"
-
+        session = pcs._get_session()
+        reason = "curl_cffi not loaded" if session is None else "PCS returned no data or stage is not a TTT/ITT"
+        return f"Individual splits not available for stage {stage} ({reason})"
     lines = [f"TTT Splits - Stage {stage}", ""]
     for team in splits:
         lines.append(f"  {team['team']}")
