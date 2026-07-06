@@ -34,7 +34,7 @@ def test():
         "jsonrpc": "2.0", "id": 1,
         "method": "initialize",
         "params": {
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": "2025-03-26",
             "capabilities": {},
             "clientInfo": {"name": "test-client", "version": "1.0"}
         }
