@@ -205,7 +205,6 @@ class AsoSource:
         results.sort(key=lambda x: x["km"])
         return results
 
-
     def clean_telemetry(self, tel):
         """Deduplicate riders by bib and filter stale GPS positions."""
         raw_riders = tel.get("Riders", [])
@@ -471,7 +470,7 @@ def cmd_stage_result(aso, stage, top_n=0, show_cp=False, show_splits=False):
             hdr_limit = min(10, len(finish_cp["rankings"]))
             print(f"{'CP':>4}  {'KM':>6}", end="")
             for r in finish_cp["rankings"][:hdr_limit]:
-                rider = aso._riders.get(r["bib"], {})
+                rider = (aso.get_rider(r["bib"]) or {})
                 ln = rider.get("lastname", f"#{r['bib']}")
                 print(f" {truncate(ln,14):>14}", end="")
             print()
@@ -554,7 +553,7 @@ def cmd_live(aso, watch=False, interval=15):
         jersey_parts = []
         for i in range(4):
             if i < len(ygpw) and ygpw[i]:
-                r = aso._riders.get(ygpw[i])
+                r = aso.get_rider(ygpw[i])
                 if r:
                     jersey_parts.append(f"{jersey_icons[i]}{jersey_names[i][0]}={r['firstname']} {r['lastname']}")
         if jersey_parts:
@@ -585,7 +584,7 @@ def cmd_live(aso, watch=False, interval=15):
             avg_kph = sum(kphs) / len(kphs) if kphs else 0
             names = []
             for r in grp["riders"]:
-                rider = aso._riders.get(r.get("Bib"))
+                rider = aso.get_rider(r.get("Bib"))
                 names.append(rider["lastname"] if rider else f"#{r.get('Bib')}")
             names_str = ", ".join(names[:8])
             if len(names) > 8:
@@ -630,7 +629,7 @@ def cmd_where(aso, names):
     for name in names:
         name_lower = name.lower().replace(" ", "")
         found = False
-        for bib, info in aso._riders.items():
+        for bib, info in aso.get_all_riders().items():
             full = f"{info['firstname']}{info['lastname']}".lower().replace(" ", "")
             if name_lower in full:
                 matches.append((bib, info, name))
@@ -661,7 +660,7 @@ def cmd_where(aso, names):
                   f"{aso._teams.get(info['team_code'], {}).get('name', info['team_code']):<22} "
                   f"{'NOT TRACKED':>8} {'':>6} {'':>6} {'':>5} {'no GPS':>8}")
     if sorted_riders:
-        print(f"\nLeader: {aso._riders.get(sorted_riders[0].get('Bib'), {}).get('lastname', '?')} "
+        print(f"\nLeader: {(aso.get_rider(sorted_riders[0].get('Bib')) or {}).get('lastname', '?')} "
               f"at {leader_km:.2f}km to finish")
 
 
@@ -685,7 +684,7 @@ def cmd_jerseys(aso, stage=0):
     for i in range(4):
         if i < len(ygpw) and ygpw[i]:
             bib = ygpw[i]
-            r = aso._riders.get(bib)
+            r = aso.get_rider(bib)
             if r:
                 print(f"{jersey_icons[i]} {jersey_names[i]:<18} {r['firstname']} {r['lastname']}  "
                       f"({r['team_name']}, bib {bib})")
